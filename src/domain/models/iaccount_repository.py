@@ -56,4 +56,9 @@ class IAccountRepository(ABC):
     @abstractmethod
     def check_email_exists(self, email: str) -> bool:
         pass
+    
+    @abstractmethod
+    def get_by_clinic(self, clinic_id: int) -> List[Account]:
+        """Get all accounts in a clinic"""
+        pass
 

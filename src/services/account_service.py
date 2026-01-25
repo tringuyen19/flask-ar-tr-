@@ -172,4 +172,8 @@ class AccountService:
     def update_password(self, account_id: int, new_password_hash: str) -> Optional[Account]:
         """Update password (alias for change_password)"""
         return self.change_password(account_id, new_password_hash)
+    
+    def get_accounts_by_clinic(self, clinic_id: int) -> List[Account]:
+        """Get all accounts in a clinic"""
+        return self.repository.get_by_clinic(clinic_id)
 
