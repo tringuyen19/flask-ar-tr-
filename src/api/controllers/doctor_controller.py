@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles
 from infrastructure.repositories.doctor_profile_repository import DoctorProfileRepository
 from infrastructure.repositories.account_repository import AccountRepository
 from infrastructure.repositories.doctor_review_repository import DoctorReviewRepository
@@ -48,15 +47,12 @@ def health_check():
 
 
 @doctor_bp.route('', methods=['POST'])
-@require_roles(['Doctor', 'Admin'])
 def create_doctor():
     """
     Create a new doctor profile
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     consumes:
       - application/json
     produces:
@@ -134,15 +130,12 @@ def create_doctor():
 
 
 @doctor_bp.route('/<int:doctor_id>', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_doctor(doctor_id):
     """
     Get doctor by ID
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     parameters:
       - name: doctor_id
         in: path
@@ -170,15 +163,12 @@ def get_doctor(doctor_id):
 
 
 @doctor_bp.route('/account/<int:account_id>', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_doctor_by_account(account_id):
     """
     Get doctor by account ID
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -206,15 +196,12 @@ def get_doctor_by_account(account_id):
 
 
 @doctor_bp.route('/license/<license_number>', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_doctor_by_license(license_number):
     """
     Get doctor by license number
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     parameters:
       - name: license_number
         in: path
@@ -242,15 +229,12 @@ def get_doctor_by_license(license_number):
 
 
 @doctor_bp.route('/specialization/<specialization>', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_doctors_by_specialization(specialization):
     """
     Get doctors by specialization
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     parameters:
       - name: specialization
         in: path
@@ -277,15 +261,12 @@ def get_doctors_by_specialization(specialization):
 
 
 @doctor_bp.route('/search', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def search_doctors():
     """
     Search doctors by name
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     parameters:
       - name: name
         in: query
@@ -316,15 +297,12 @@ def search_doctors():
 
 
 @doctor_bp.route('', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_all_doctors():
     """
     Get all doctors
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     responses:
       200:
         description: List of all doctors
@@ -345,15 +323,12 @@ def get_all_doctors():
 
 
 @doctor_bp.route('/<int:doctor_id>', methods=['PUT'])
-@require_roles(['Doctor', 'Admin'])
 def update_doctor(doctor_id):
     """
     Update doctor profile
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     parameters:
       - name: doctor_id
         in: path
@@ -427,15 +402,12 @@ def update_doctor(doctor_id):
 
 
 @doctor_bp.route('/<int:doctor_id>', methods=['DELETE'])
-@require_roles(['Doctor', 'Admin'])
 def delete_doctor(doctor_id):
     """
     Delete doctor
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     parameters:
       - name: doctor_id
         in: path
@@ -489,15 +461,12 @@ def delete_doctor(doctor_id):
 
 
 @doctor_bp.route('/stats', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_stats():
     """
     Get doctor statistics
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     responses:
       200:
         description: Doctor statistics
@@ -525,15 +494,12 @@ def get_stats():
 
 
 @doctor_bp.route('/validate-license', methods=['POST'])
-@require_roles(['Doctor', 'Admin'])
 def validate_license():
     """
     Validate license number
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     consumes:
       - application/json
     produces:
@@ -586,15 +552,12 @@ def validate_license():
 
 
 @doctor_bp.route('/<int:doctor_id>/performance', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_doctor_performance(doctor_id):
     """
     Get performance summary for a doctor (FR-21)
     ---
     tags:
       - Doctor
-    security:
-      - Bearer: []
     parameters:
       - name: doctor_id
         in: path

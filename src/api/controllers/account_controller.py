@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles, require_role
 from infrastructure.repositories.account_repository import AccountRepository
 from infrastructure.repositories.role_repository import RoleRepository
 from infrastructure.databases.mssql import session
@@ -36,15 +35,12 @@ def health_check():
 
 
 @account_bp.route('', methods=['POST'])
-@require_role('Admin')
 def create_account():
     """
     Create a new account
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     consumes:
       - application/json
     produces:
@@ -161,15 +157,12 @@ def get_account(account_id):
 
 
 @account_bp.route('/email/<email>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_account_by_email(email):
     """
     Get account by email
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: email
         in: path
@@ -196,15 +189,12 @@ def get_account_by_email(email):
 
 
 @account_bp.route('/role/<int:role_id>', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_accounts_by_role(role_id):
     """
     Get accounts by role
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: role_id
         in: path
@@ -231,15 +221,12 @@ def get_accounts_by_role(role_id):
 
 
 @account_bp.route('/clinic/<int:clinic_id>', methods=['GET'])
-@require_roles(['ClinicManager', 'Admin', 'Doctor'])
 def get_accounts_by_clinic(clinic_id):
     """
     Get accounts by clinic
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: clinic_id
         in: path
@@ -266,15 +253,12 @@ def get_accounts_by_clinic(clinic_id):
 
 
 @account_bp.route('/status/<status>', methods=['GET'])
-@require_role('Admin')
 def get_accounts_by_status(status):
     """
     Get accounts by status
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: status
         in: path
@@ -302,15 +286,12 @@ def get_accounts_by_status(status):
 
 
 @account_bp.route('', methods=['GET'])
-@require_role('Admin')
 def get_all_accounts():
     """
     Get all accounts
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     responses:
       200:
         description: List of all accounts
@@ -330,15 +311,12 @@ def get_all_accounts():
 
 
 @account_bp.route('/<int:account_id>', methods=['PUT'])
-@require_roles(['Patient', 'Admin'])
 def update_account(account_id):
     """
     Update account
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -416,15 +394,12 @@ def update_account(account_id):
 
 
 @account_bp.route('/<int:account_id>/password', methods=['PUT'])
-@require_roles(['Patient', 'Admin'])
 def update_password(account_id):
     """
     Update account password
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -489,15 +464,12 @@ def update_password(account_id):
 
 
 @account_bp.route('/<int:account_id>/status', methods=['PUT'])
-@require_role('Admin')
 def update_status(account_id):
     """
     Update account status
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -564,15 +536,12 @@ def update_status(account_id):
 
 
 @account_bp.route('/<int:account_id>', methods=['DELETE'])
-@require_role('Admin')
 def delete_account(account_id):
     """
     Delete account
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -601,7 +570,7 @@ def delete_account(account_id):
 @account_bp.route('/check-email', methods=['POST'])
 def check_email_exists():
     """
-    Check if email exists (Public endpoint for registration)
+    Check if email exists
     ---
     tags:
       - Account
@@ -652,15 +621,12 @@ def check_email_exists():
 
 
 @account_bp.route('/stats', methods=['GET'])
-@require_role('Admin')
 def get_stats():
     """
     Get account statistics
     ---
     tags:
       - Account
-    security:
-      - Bearer: []
     parameters:
       - name: role_id
         in: query

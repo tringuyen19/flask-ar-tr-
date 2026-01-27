@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles, require_role
 from infrastructure.repositories.retinal_image_repository import RetinalImageRepository
 from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
 from infrastructure.repositories.clinic_repository import ClinicRepository
@@ -39,15 +38,12 @@ def health_check():
 
 
 @retinal_image_bp.route('', methods=['POST'])
-@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def upload_image():
     """
     Upload a new retinal image
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     consumes:
       - application/json
     produces:
@@ -145,15 +141,12 @@ def upload_image():
 
 
 @retinal_image_bp.route('/bulk', methods=['POST'])
-@require_roles(['Doctor', 'Admin', 'ClinicManager'])
 def upload_bulk_images():
     """
     Upload multiple retinal images in bulk with batch tracking (FR-24)
     ---
     tags:
       - Retinal Images
-    security:
-      - Bearer: []
     consumes:
       - application/json
     produces:
@@ -385,15 +378,12 @@ def upload_bulk_images():
 
 
 @retinal_image_bp.route('/<int:image_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_image(image_id):
     """
     Get retinal image by ID
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: image_id
         in: path
@@ -420,15 +410,12 @@ def get_image(image_id):
 
 
 @retinal_image_bp.route('/patient/<int:patient_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_images_by_patient(patient_id):
     """
     Get all images for a patient
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: patient_id
         in: path
@@ -465,15 +452,12 @@ def get_images_by_patient(patient_id):
 
 
 @retinal_image_bp.route('/clinic/<int:clinic_id>', methods=['GET'])
-@require_roles(['ClinicManager', 'Admin', 'Doctor'])
 def get_images_by_clinic(clinic_id):
     """
     Get all images uploaded by a clinic
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: clinic_id
         in: path
@@ -504,15 +488,12 @@ def get_images_by_clinic(clinic_id):
 
 
 @retinal_image_bp.route('/status/<status>', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_images_by_status(status):
     """
     Get images by status
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: status
         in: path
@@ -545,15 +526,12 @@ def get_images_by_status(status):
 
 
 @retinal_image_bp.route('/pending-analysis', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_pending_analysis():
     """
     Get images pending AI analysis
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     responses:
       200:
         description: List of images pending analysis
@@ -579,15 +557,12 @@ def get_pending_analysis():
 
 
 @retinal_image_bp.route('/<int:image_id>/processing', methods=['PUT'])
-@require_role('Admin')
 def mark_as_processing(image_id):
     """
     Mark image as processing
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: image_id
         in: path
@@ -652,15 +627,12 @@ def mark_as_analyzed(image_id):
 
 
 @retinal_image_bp.route('/<int:image_id>/error', methods=['PUT'])
-@require_role('Admin')
 def mark_as_error(image_id):
     """
     Mark image as error
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: image_id
         in: path
@@ -690,15 +662,12 @@ def mark_as_error(image_id):
 
 
 @retinal_image_bp.route('/<int:image_id>', methods=['PUT'])
-@require_roles(['Doctor', 'Admin', 'ClinicManager'])
 def update_image(image_id):
     """
     Update image information
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: image_id
         in: path
@@ -758,15 +727,12 @@ def update_image(image_id):
 
 
 @retinal_image_bp.route('/<int:image_id>', methods=['DELETE'])
-@require_roles(['Doctor', 'Admin'])
 def delete_image(image_id):
     """
     Delete retinal image
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: image_id
         in: path
@@ -793,15 +759,12 @@ def delete_image(image_id):
 
 
 @retinal_image_bp.route('/stats', methods=['GET'])
-@require_roles(['Doctor', 'Admin', 'ClinicManager'])
 def get_stats():
     """
     Get image statistics
     ---
     tags:
       - Retinal Image
-    security:
-      - Bearer: []
     parameters:
       - name: status
         in: query

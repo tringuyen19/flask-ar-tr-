@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles, require_role
 from infrastructure.repositories.notification_repository import NotificationRepository
 from infrastructure.repositories.account_repository import AccountRepository
 from infrastructure.databases.mssql import session
@@ -108,15 +107,12 @@ def send_notification():
 
 
 @notification_bp.route('/<int:notification_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_notification(notification_id):
     """
     Get notification by ID
     ---
     tags:
       - Notification
-    security:
-      - Bearer: []
     parameters:
       - name: notification_id
         in: path
@@ -201,15 +197,12 @@ def get_notifications_by_account(account_id):
 
 
 @notification_bp.route('/account/<int:account_id>/unread', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_unread_notifications(account_id):
     """
     Get unread notifications for an account
     ---
     tags:
       - Notification
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -240,15 +233,12 @@ def get_unread_notifications(account_id):
 
 
 @notification_bp.route('/account/<int:account_id>/recent', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_recent_notifications(account_id):
     """
     Get recent notifications for an account
     ---
     tags:
       - Notification
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -325,15 +315,12 @@ def mark_as_read(notification_id):
 
 
 @notification_bp.route('/account/<int:account_id>/read-all', methods=['PUT'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def mark_all_as_read(account_id):
     """
     Mark all notifications as read for an account
     ---
     tags:
       - Notification
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -393,15 +380,12 @@ def delete_notification(notification_id):
 
 
 @notification_bp.route('/account/<int:account_id>/delete-all', methods=['DELETE'])
-@require_roles(['Patient', 'Admin'])
 def delete_all_notifications(account_id):
     """
     Delete all notifications for an account
     ---
     tags:
       - Notification
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: path
@@ -441,15 +425,12 @@ def delete_all_notifications(account_id):
 
 
 @notification_bp.route('/stats', methods=['GET'])
-@require_roles(['Admin', 'Doctor'])
 def get_stats():
     """
     Get notification statistics
     ---
     tags:
       - Notification
-    security:
-      - Bearer: []
     parameters:
       - name: account_id
         in: query
@@ -497,15 +478,12 @@ def get_stats():
 
 
 @notification_bp.route('/broadcast', methods=['POST'])
-@require_role('Admin')
 def broadcast_notification():
     """
     Broadcast notification to multiple accounts
     ---
     tags:
       - Notification
-    security:
-      - Bearer: []
     consumes:
       - application/json
     produces:

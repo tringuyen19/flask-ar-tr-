@@ -91,13 +91,6 @@ from .notification_schema import (
     NotificationResponseSchema
 )
 
-from .notification_template_schema import (
-    NotificationTemplateCreateRequestSchema,
-    NotificationTemplateUpdateRequestSchema,
-    NotificationTemplateRenderRequestSchema,
-    NotificationTemplateResponseSchema
-)
-
 from .conversation_schema import (
     ConversationCreateRequestSchema,
     ConversationUpdateRequestSchema,
@@ -133,19 +126,7 @@ from .admin_schema import (
     AiConfigurationUpdateRequestSchema,
     RetrainingPolicySchema,
     AdminDashboardResponseSchema,
-    AdminAnalyticsResponseSchema,
-    PrivacySettingsUpdateRequestSchema,
-    PrivacySettingsResponseSchema,
-    CommunicationPolicySchema,
-    CommunicationPolicyUpdateRequestSchema,
-    CommunicationPoliciesResponseSchema
-)
-
-# Audit Log Schemas
-from .audit_log_schema import (
-    AuditLogCreateRequestSchema,
-    AuditLogResponseSchema,
-    AuditLogSearchRequestSchema
+    AdminAnalyticsResponseSchema
 )
 
 __all__ = [
@@ -197,10 +178,6 @@ __all__ = [
     'NotificationCreateRequestSchema',
     'NotificationUpdateRequestSchema',
     'NotificationResponseSchema',
-    'NotificationTemplateCreateRequestSchema',
-    'NotificationTemplateUpdateRequestSchema',
-    'NotificationTemplateRenderRequestSchema',
-    'NotificationTemplateResponseSchema',
     'ConversationCreateRequestSchema',
     'ConversationUpdateRequestSchema',
     'ConversationResponseSchema',
@@ -223,15 +200,5 @@ __all__ = [
     'RetrainingPolicySchema',
     'AdminDashboardResponseSchema',
     'AdminAnalyticsResponseSchema',
-    'PrivacySettingsUpdateRequestSchema',
-    'PrivacySettingsResponseSchema',
-    'CommunicationPolicySchema',
-    'CommunicationPolicyUpdateRequestSchema',
-    'CommunicationPoliciesResponseSchema',
-    
-    # Audit Log
-    'AuditLogCreateRequestSchema',
-    'AuditLogResponseSchema',
-    'AuditLogSearchRequestSchema',
 ]
 

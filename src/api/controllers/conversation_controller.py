@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles
 from infrastructure.repositories.conversation_repository import ConversationRepository
 from infrastructure.repositories.message_repository import MessageRepository
 from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
@@ -43,15 +42,12 @@ def health_check():
 
 
 @conversation_bp.route('', methods=['POST'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def create_conversation():
     """
     Create or get existing conversation between patient and doctor
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     consumes:
       - application/json
     produces:
@@ -122,15 +118,12 @@ def create_conversation():
 
 
 @conversation_bp.route('/<int:conversation_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_conversation(conversation_id):
     """
     Get conversation by ID
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -158,15 +151,12 @@ def get_conversation(conversation_id):
 
 
 @conversation_bp.route('/patient/<int:patient_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_conversations_by_patient(patient_id):
     """
     Get all conversations for a patient
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: patient_id
         in: path
@@ -205,15 +195,12 @@ def get_conversations_by_patient(patient_id):
 
 
 @conversation_bp.route('/doctor/<int:doctor_id>', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_conversations_by_doctor(doctor_id):
     """
     Get all conversations for a doctor
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: doctor_id
         in: path
@@ -252,15 +239,12 @@ def get_conversations_by_doctor(doctor_id):
 
 
 @conversation_bp.route('/<int:conversation_id>/close', methods=['PUT'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def close_conversation(conversation_id):
     """
     Close a conversation
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -289,15 +273,12 @@ def close_conversation(conversation_id):
 
 
 @conversation_bp.route('/<int:conversation_id>/reopen', methods=['PUT'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def reopen_conversation(conversation_id):
     """
     Reopen a closed conversation
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -326,15 +307,12 @@ def reopen_conversation(conversation_id):
 
 
 @conversation_bp.route('/<int:conversation_id>/messages', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_messages(conversation_id):
     """
     Get all messages in a conversation
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -377,15 +355,12 @@ def get_messages(conversation_id):
 
 
 @conversation_bp.route('/<int:conversation_id>/messages', methods=['POST'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def send_message(conversation_id):
     """
     Send a message in a conversation
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -471,15 +446,12 @@ def send_message(conversation_id):
 
 
 @conversation_bp.route('/<int:conversation_id>/messages/search', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def search_messages(conversation_id):
     """
     Search messages in a conversation
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -520,15 +492,12 @@ def search_messages(conversation_id):
 
 
 @conversation_bp.route('/<int:conversation_id>/messages/last', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_last_message(conversation_id):
     """
     Get last message in a conversation
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -560,15 +529,12 @@ def get_last_message(conversation_id):
 
 
 @conversation_bp.route('/<int:conversation_id>/messages/<int:message_id>', methods=['DELETE'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def delete_message(conversation_id, message_id):
     """
     Delete a message from a conversation
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -606,15 +572,12 @@ def delete_message(conversation_id, message_id):
 
 
 @conversation_bp.route('/<int:conversation_id>', methods=['DELETE'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
 def delete_conversation(conversation_id):
     """
     Delete a conversation
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     parameters:
       - name: conversation_id
         in: path
@@ -642,15 +605,12 @@ def delete_conversation(conversation_id):
 
 
 @conversation_bp.route('/stats', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
 def get_stats():
     """
     Get conversation statistics
     ---
     tags:
       - Conversation
-    security:
-      - Bearer: []
     responses:
       200:
         description: Conversation statistics
