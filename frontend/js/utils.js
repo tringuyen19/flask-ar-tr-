@@ -5,10 +5,10 @@
 (function () {
   'use strict';
 
-  function showToast(message, type = 'info') {
-    if (typeof window.bootstrap !== 'undefined') {
-      // Có thể dùng Bootstrap toast sau khi có template
-      console.log('[AURA]', type, message);
+  function showToast(message, type) {
+    type = type || 'info';
+    if (window.AuraAlert && typeof window.AuraAlert.toast === 'function') {
+      window.AuraAlert.toast(message, type);
     } else {
       console.log('[AURA]', type, message);
     }
