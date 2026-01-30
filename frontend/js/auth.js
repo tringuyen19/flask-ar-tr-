@@ -54,12 +54,28 @@
     return true;
   }
 
+  /** Map role_id (backend) -> role name (1=Admin, 2=Doctor, 3=Patient, 4=ClinicManager) */
+  function getRoleNameByRoleId(roleId) {
+    const map = { 1: 'Admin', 2: 'Doctor', 3: 'Patient', 4: 'ClinicManager' };
+    return map[roleId] || '';
+  }
+
+  /** Lưu auth từ response login/register và redirect theo role */
+  function setAuthFromResponse(responseData) {
+    const data = responseData && responseData.data ? responseData.data : responseData;
+    if (!data || !data.access_token) return false;
+    const user = { account_id: data.account_id, email: data.email, role_id: data.role_id, clinic_id: data.clinic_id };
+    const roleName = getRoleNameByRoleId(data.role_id);
+    setAuth(data.access_token, user, roleName);
+    return true;
+  }
+
   function redirectByRole() {
     const role = getRole();
     const base = window.location.pathname.replace(/\/[^/]*$/, '') || '';
     const map = { Patient: '/patient/dashboard.html', Doctor: '/doctor/dashboard.html', ClinicManager: '/clinic/dashboard.html', Admin: '/admin/dashboard.html' };
-    const path = map[role] || '/index.html';
-    window.location.href = base + path;
+    const path = map[role] || 'index.html';
+    window.location.href = base.replace(/\/$/, '') + '/' + path;
   }
 
   window.AuraAuth = {
@@ -70,6 +86,8 @@
     clearAuth,
     isLoggedIn,
     requireLogin,
+    getRoleNameByRoleId,
+    setAuthFromResponse,
     redirectByRole,
   };
 })();

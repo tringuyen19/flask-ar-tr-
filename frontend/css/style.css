@@ -94,8 +94,8 @@ a:hover {
   padding-right: var(--aura-space-m);
 }
 
-/* Layout: fixed header offset */
-body { padding-top: 56px; }
+/* Layout: chỉ trang có header fixed mới cần padding-top (index.html thêm class aura-fixed-header vào body) */
+body.aura-fixed-header { padding-top: 56px; }
 
 /* Header */
 .aura-header .navbar-brand:hover { color: #fff !important; }

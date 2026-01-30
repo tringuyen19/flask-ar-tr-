@@ -4,10 +4,12 @@
  */
 
 const AURA_CONFIG = {
-  // API Backend (Flask chạy mặc định port 5000)
-  API_BASE_URL: window.location.origin.includes('localhost')
-    ? 'http://localhost:5000'
-    : window.location.origin,
+  // API Backend (Flask chạy port 9999). Dùng localhost:9999 khi: file://, null, localhost, 127.0.0.1
+  API_BASE_URL: (function () {
+    var o = typeof window !== 'undefined' ? window.location.origin : '';
+    if (!o || o === 'null' || o.indexOf('localhost') !== -1 || o.indexOf('127.0.0.1') !== -1) return 'http://localhost:9999';
+    return o;
+  })(),
 
   // Tên ứng dụng
   APP_NAME: 'AURA',
