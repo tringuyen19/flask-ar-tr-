@@ -44,11 +44,45 @@
     return !!getToken();
   }
 
+  /**
+   * Trả về URL tuyệt đối của trang login (luôn đúng dù đang ở /, /patient/, /doctor/, ...).
+   * Tránh lỗi 404 khi redirect từ patient/dashboard.html với 'login.html' thành patient/login.html.
+   */
+  function getLoginPageUrl() {
+    const origin = window.location.origin || '';
+    const pathname = window.location.pathname || '/';
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length >= 2 && ['patient', 'doctor', 'admin', 'clinic'].indexOf(segments[segments.length - 2]) !== -1) {
+      const base = segments.slice(0, -2).join('/');
+      return origin + (base ? '/' + base + '/' : '/') + 'login.html';
+    }
+    if (segments.length >= 1) {
+      const base = segments.slice(0, -1).join('/');
+      return origin + (base ? '/' + base + '/' : '/') + 'login.html';
+    }
+    return origin + '/login.html';
+  }
+
   /** Redirect về login nếu chưa đăng nhập (dùng cho trang cần bảo vệ) */
   function requireLogin(loginUrl) {
     if (!isLoggedIn()) {
-      const url = loginUrl || 'login.html';
-      window.location.href = url;
+      window.location.href = loginUrl || getLoginPageUrl();
+      return false;
+    }
+    return true;
+  }
+
+  /** Kiểm tra đăng nhập và đúng role; nếu không đúng role thì redirect về dashboard của role hiện tại hoặc index. Trả về true nếu OK. */
+  function requireRole(allowedRole) {
+    if (!requireLogin()) return false;
+    const role = getRole();
+    if (role !== allowedRole) {
+      const pathname = window.location.pathname || '';
+      const parent = pathname.replace(/\/[^/]*$/, '').replace(/\/[^/]+$/, '') || '';
+      const map = { Patient: 'patient/dashboard.html', Doctor: 'doctor/dashboard.html', ClinicManager: 'clinic/dashboard.html', Admin: 'admin/dashboard.html' };
+      const rel = map[role] || 'index.html';
+      const fullPath = (parent ? parent + '/' : '/') + rel;
+      window.location.href = (window.location.origin || '') + fullPath;
       return false;
     }
     return true;
@@ -72,10 +106,12 @@
 
   function redirectByRole() {
     const role = getRole();
-    const base = window.location.pathname.replace(/\/[^/]*$/, '') || '';
-    const map = { Patient: '/patient/dashboard.html', Doctor: '/doctor/dashboard.html', ClinicManager: '/clinic/dashboard.html', Admin: '/admin/dashboard.html' };
+    const map = { Patient: 'patient/dashboard.html', Doctor: 'doctor/dashboard.html', ClinicManager: 'clinic/dashboard.html', Admin: 'admin/dashboard.html' };
     const path = map[role] || 'index.html';
-    window.location.href = base.replace(/\/$/, '') + '/' + path;
+    const origin = window.location.origin || '';
+    const basePath = (window.location.pathname || '').replace(/\/[^/]*$/, '') || '';
+    const fullPath = (basePath ? basePath + '/' : '/') + path;
+    window.location.href = origin ? origin + fullPath : fullPath;
   }
 
   window.AuraAuth = {
@@ -86,6 +122,8 @@
     clearAuth,
     isLoggedIn,
     requireLogin,
+    requireRole,
+    getLoginPageUrl,
     getRoleNameByRoleId,
     setAuthFromResponse,
     redirectByRole,

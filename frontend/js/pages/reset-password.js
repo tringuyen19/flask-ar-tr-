@@ -76,7 +76,8 @@
       showMessage('Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.', true);
       form.reset();
       setTimeout(function () {
-        window.location.href = 'login.html';
+        var loginUrl = (window.AuraAuth && window.AuraAuth.getLoginPageUrl) ? window.AuraAuth.getLoginPageUrl() : (window.location.origin + '/login.html');
+        window.location.href = loginUrl;
       }, 2000);
     } catch (err) {
       if (err.message && (err.message.includes('404') || err.message.includes('Not Found') || err.message.includes('failed'))) {

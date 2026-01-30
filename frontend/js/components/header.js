@@ -38,7 +38,8 @@
     el.addEventListener('click', function (e) {
       e.preventDefault();
       if (window.AuraAuth && window.AuraAuth.clearAuth) window.AuraAuth.clearAuth();
-      window.location.href = 'login.html';
+      var loginUrl = (window.AuraAuth && window.AuraAuth.getLoginPageUrl) ? window.AuraAuth.getLoginPageUrl() : (window.location.origin + '/login.html');
+      window.location.href = loginUrl;
     });
   }
 
