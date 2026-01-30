@@ -10,8 +10,9 @@
 
   function getHeaders(includeAuth = true) {
     const headers = { 'Content-Type': 'application/json' };
-    if (includeAuth && window.AURA_CONFIG && window.AURA_CONFIG.STORAGE_KEYS) {
-      const token = localStorage.getItem(window.AURA_CONFIG.STORAGE_KEYS.TOKEN);
+    if (includeAuth) {
+      const key = (window.AURA_CONFIG && window.AURA_CONFIG.STORAGE_KEYS && window.AURA_CONFIG.STORAGE_KEYS.TOKEN) || 'aura_access_token';
+      const token = localStorage.getItem(key);
       if (token) headers['Authorization'] = 'Bearer ' + token;
     }
     return headers;
@@ -25,7 +26,12 @@
       const parts = typeof err === 'object' ? Object.values(err).flat() : [err];
       return parts.filter(Boolean).join('. ') || 'Dữ liệu không hợp lệ.';
     }
-    if (res.status === 401) return 'Email hoặc mật khẩu không đúng.';
+    if (res.status === 401) {
+      if (data && data.message && (data.message.indexOf('token') !== -1 || data.message.indexOf('Authentication') !== -1)) {
+        return data.message + ' Vui lòng đăng nhập lại.';
+      }
+      return 'Email hoặc mật khẩu không đúng.';
+    }
     if (res.status === 409) return 'Email này đã được đăng ký.';
     if (res.status === 501) return data.message || 'Chức năng đang được cập nhật.';
     if (res.status >= 500) return data.message || 'Lỗi máy chủ. Vui lòng thử lại sau.';
@@ -240,6 +246,110 @@
     return res.data;
   }
 
+  /** Clinic: chi tiết phòng khám (GET /api/clinics/:id) */
+  async function getClinic(clinicId) {
+    const res = await request('GET', '/api/clinics/' + clinicId);
+    return res.data;
+  }
+
+  /** Clinic: cập nhật phòng khám (PUT /api/clinics/:id) */
+  async function updateClinic(clinicId, payload) {
+    const res = await request('PUT', '/api/clinics/' + clinicId, payload);
+    return res.data;
+  }
+
+  /** Clinic: thành viên (GET /api/clinics/:id/members) */
+  async function getClinicMembers(clinicId) {
+    const res = await request('GET', '/api/clinics/' + clinicId + '/members');
+    return res.data;
+  }
+
+  /** Clinic: bệnh nhân thuộc phòng khám (GET /api/patients/assigned/clinic/:id) */
+  async function getAssignedPatients(clinicId) {
+    const res = await request('GET', '/api/patients/assigned/clinic/' + clinicId);
+    return res.data;
+  }
+
+  /** Clinic: ảnh võng mạc tại phòng khám (GET /api/retinal-images/clinic/:id) */
+  async function getImagesByClinic(clinicId) {
+    const res = await request('GET', '/api/retinal-images/clinic/' + clinicId);
+    return res.data;
+  }
+
+  /** Clinic: tổng hợp rủi ro (GET /api/clinics/:id/risk-aggregation) */
+  async function getClinicRiskAggregation(clinicId) {
+    const res = await request('GET', '/api/clinics/' + clinicId + '/risk-aggregation');
+    return res.data;
+  }
+
+  /** Clinic: sử dụng dịch vụ (GET /api/clinics/:id/usage) */
+  async function getClinicUsage(clinicId) {
+    const res = await request('GET', '/api/clinics/' + clinicId + '/usage');
+    return res.data;
+  }
+
+  /** Clinic: cảnh báo nguy cơ cao (GET /api/clinics/:id/high-risk-alerts) */
+  async function getHighRiskAlerts(clinicId, riskLevel) {
+    let path = '/api/clinics/' + clinicId + '/high-risk-alerts';
+    if (riskLevel) path += '?risk_level=' + encodeURIComponent(riskLevel);
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** Clinic: xu hướng bất thường (GET /api/clinics/:id/abnormal-trends) */
+  async function getClinicAbnormalTrends(clinicId, days) {
+    let path = '/api/clinics/' + clinicId + '/abnormal-trends';
+    if (days != null) path += '?days=' + days;
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** Clinic: tóm tắt báo cáo (GET /api/clinics/:id/reports-summary) */
+  async function getClinicReportsSummary(clinicId, startDate, endDate) {
+    let path = '/api/clinics/' + clinicId + '/reports-summary';
+    const q = [];
+    if (startDate) q.push('start_date=' + encodeURIComponent(startDate));
+    if (endDate) q.push('end_date=' + encodeURIComponent(endDate));
+    if (q.length) path += '?' + q.join('&');
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** Clinic: báo cáo tầm soát (GET /api/clinics/:id/screening-report) */
+  async function getClinicScreeningReport(clinicId, params) {
+    let path = '/api/clinics/' + clinicId + '/screening-report';
+    if (params) {
+      const q = new URLSearchParams();
+      if (params.campaign_name) q.set('campaign_name', params.campaign_name);
+      if (params.start_date) q.set('start_date', params.start_date);
+      if (params.end_date) q.set('end_date', params.end_date);
+      const s = q.toString();
+      if (s) path += '?' + s;
+    }
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** Clinic: xuất thống kê (GET /api/clinics/:id/export-statistics) */
+  async function exportClinicStatistics(clinicId, format) {
+    let path = '/api/clinics/' + clinicId + '/export-statistics';
+    if (format) path += '?format=' + encodeURIComponent(format);
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** Subscriptions: danh sách theo account (GET /api/subscriptions/account/:id) */
+  async function getSubscriptionsByAccount(accountId) {
+    const res = await request('GET', '/api/subscriptions/account/' + accountId);
+    return res.data;
+  }
+
+  /** Subscriptions: gói đang active (GET /api/subscriptions/account/:id/active) */
+  async function getActiveSubscription(accountId) {
+    const res = await request('GET', '/api/subscriptions/account/' + accountId + '/active');
+    return res.data;
+  }
+
   window.AuraAPI = {
     get: (path) => request('GET', path),
     post: (path, body) => request('POST', path, body),
@@ -276,5 +386,19 @@
     getPatientAnalyses,
     getMessagesByConversation,
     sendMessage,
+    getClinic,
+    updateClinic,
+    getClinicMembers,
+    getAssignedPatients,
+    getImagesByClinic,
+    getClinicRiskAggregation,
+    getClinicUsage,
+    getHighRiskAlerts,
+    getClinicAbnormalTrends,
+    getClinicReportsSummary,
+    getClinicScreeningReport,
+    exportClinicStatistics,
+    getSubscriptionsByAccount,
+    getActiveSubscription,
   };
 })();
