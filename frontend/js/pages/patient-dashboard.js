@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  if (!window.AuraAuth || !window.AuraAuth.requireLogin || !window.AuraAuth.requireLogin()) return;
+  if (!window.AuraAuth || !window.AuraAuth.requireRole || !window.AuraAuth.requireRole('Patient')) return;
 
   var user = window.AuraAuth.getUser();
   var accountId = user && user.account_id;
@@ -78,9 +78,10 @@
         var images = (imagesData && imagesData.images) || [];
         var reports = (reportsData && reportsData.reports) || [];
         var totalImages = (imagesData && imagesData.count) != null ? imagesData.count : images.length;
+        var reportCount = (reportsData && reportsData.count) != null ? reportsData.count : reports.length;
         setStat(statImages, totalImages);
         setStat(statAnalyses, totalImages);
-        setStat(statReports, reports.length);
+        setStat(statReports, reportCount);
         renderRecent(images, { reports: reports });
       })
       .catch(function (err) {

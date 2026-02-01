@@ -20,7 +20,7 @@ class SubscriptionResponseSchema(Schema):
     subscription_id = fields.Int(required=True, metadata={'description': "Unique subscription identifier"})
     account_id = fields.Int(required=True, metadata={'description': "Account ID"})
     package_id = fields.Int(required=True, metadata={'description': "Package ID"})
-    start_date = fields.Date(required=True, metadata={'description': "Subscription start date"})
+    start_date = fields.Date(allow_none=True, metadata={'description': "Subscription start date (NULL = hệ thống dùng ngày hiện tại)"})
     end_date = fields.Date(required=True, metadata={'description': "Subscription end date"})
     remaining_credits = fields.Int(required=True, metadata={'description': "Remaining image credits"})
     status = fields.Str(required=True, metadata={'description': "Subscription status"})

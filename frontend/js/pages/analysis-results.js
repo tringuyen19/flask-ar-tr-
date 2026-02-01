@@ -1,11 +1,11 @@
 /**
  * AURA - Patient Analysis Results
- * Hiển thị danh sách ảnh đã phân tích (từ images với status analyzed)
+ * Hiển thị danh sách kết quả phân tích AI theo bệnh nhân (GET /api/ai-analysis/patient/:id)
  */
 (function () {
   'use strict';
 
-  if (!window.AuraAuth || !window.AuraAuth.requireLogin || !window.AuraAuth.requireLogin()) return;
+  if (!window.AuraAuth || !window.AuraAuth.requireRole || !window.AuraAuth.requireRole('Patient')) return;
 
   var user = window.AuraAuth.getUser();
   var accountId = user && user.account_id;
@@ -22,21 +22,22 @@
   }
 
   getPatient()
-    .then(function () { return window.AuraAPI.getImagesByPatient(patientId); })
+    .then(function () { return window.AuraAPI.getPatientAnalyses(patientId, 50, 0); })
     .then(function (data) {
-      var images = (data && data.images) || [];
-      var analyzed = images.filter(function (img) { return (img.status || '').toLowerCase().indexOf('analyz') !== -1 || img.status === 'analyzed'; });
+      var analyses = (data && data.analyses) || [];
       if (!listEl) return;
-      if (!analyzed.length) {
-        listEl.innerHTML = '<div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">Chưa có kết quả phân tích. <a href="upload-image.html">Upload ảnh</a> để bắt đầu.</div></div></div>';
+      if (!analyses.length) {
+        listEl.innerHTML = '<div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">Chưa có kết quả phân tích. <a href="upload-image.html">Upload ảnh</a> và chờ bác sĩ/phòng khám tạo phân tích AI.</div></div></div>';
         return;
       }
-      listEl.innerHTML = analyzed.map(function (img) {
+      listEl.innerHTML = analyses.map(function (a) {
+        var dateStr = (a.analysis_time || a.completed_at) ? new Date(a.analysis_time || a.completed_at).toLocaleDateString('vi-VN') : '-';
+        var statusClass = a.status === 'completed' ? 'success' : (a.status === 'failed' ? 'danger' : 'secondary');
         return '<div class="col-md-4"><div class="card border-0 shadow-sm h-100">' +
-          (img.image_url ? '<img src="' + img.image_url + '" class="card-img-top" alt="Ảnh" style="height: 180px; object-fit: cover;">' : '') +
-          '<div class="card-body"><h6 class="card-title">Ảnh #' + (img.image_id || img.id) + '</h6>' +
-          '<p class="card-text small text-muted">Loại: ' + (img.image_type || '-') + ' | Mắt: ' + (img.eye_side || '-') + '</p>' +
-          '<a href="reports.html" class="btn btn-sm btn-outline-primary">Xem báo cáo</a></div></div></div>';
+          '<div class="card-body"><h6 class="card-title">Phân tích #' + (a.analysis_id || a.id) + '</h6>' +
+          '<p class="card-text small text-muted">Ảnh #' + (a.image_id || '-') + ' | ' + dateStr + '</p>' +
+          '<span class="badge bg-' + statusClass + '">' + (a.status || '-') + '</span> ' +
+          '<a href="reports.html" class="btn btn-sm btn-outline-primary mt-2">Xem báo cáo</a></div></div></div>';
       }).join('');
     })
     .catch(function (err) {

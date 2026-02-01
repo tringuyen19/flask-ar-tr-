@@ -48,7 +48,7 @@
         var rev = revenue.total_revenue;
         setEl(statRevenue, rev != null ? (typeof rev === 'number' ? rev.toLocaleString('vi-VN') : rev) : '-');
         setEl(aiConfidence, ai.average_confidence != null ? (Number(ai.average_confidence) * 100).toFixed(1) + '%' : '-');
-        setEl(aiSuccessRate, usage.success_rate != null ? (Number(usage.success_rate) * 100).toFixed(1) + '%' : '-');
+        setEl(aiSuccessRate, usage.success_rate != null ? (Number(usage.success_rate)).toFixed(1) + '%' : '-');
       })
       .catch(function (err) {
         showError(err.message || 'Tải dashboard thất bại.');

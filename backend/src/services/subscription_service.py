@@ -15,8 +15,8 @@ class SubscriptionService:
     def __init__(self, repository: ISubscriptionRepository):
         self.repository = repository
     
-    def create_subscription(self, account_id: int, package_id: int, 
-                           start_date: date, end_date: date, 
+    def create_subscription(self, account_id: int, package_id: int,
+                           start_date: Optional[date], end_date: date,
                            remaining_credits: int, status: str = 'active') -> Subscription:
         """
         Create subscription with validation (FR-11)
@@ -24,7 +24,7 @@ class SubscriptionService:
         Args:
             account_id: Account ID
             package_id: Service package ID
-            start_date: Subscription start date
+            start_date: Subscription start date (None = dùng ngày hiện tại)
             end_date: Subscription end date
             remaining_credits: Initial credits
             status: Subscription status (default: 'active')
@@ -35,6 +35,8 @@ class SubscriptionService:
         Raises:
             ValidationException: If validation fails
         """
+        if start_date is None:
+            start_date = date.today()
         # Validate using domain validators
         SubscriptionValidator.validate_dates(start_date, end_date)
         SubscriptionValidator.validate_credits(remaining_credits)

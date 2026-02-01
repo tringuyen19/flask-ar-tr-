@@ -83,7 +83,8 @@
         analysisIdSelect.innerHTML = '<option value="">-- Chọn phân tích --</option>';
         list.forEach(function (a) {
           var id = a.analysis_id || a.id;
-          var label = 'Phân tích #' + id + (a.completed_at ? ' - ' + new Date(a.completed_at).toLocaleDateString('vi-VN') : '');
+          var dateStr = a.completed_at || a.analysis_time;
+          var label = 'Phân tích #' + id + (dateStr ? ' - ' + new Date(dateStr).toLocaleDateString('vi-VN') : '');
           analysisIdSelect.appendChild(new Option(label, id));
         });
       })

@@ -5,7 +5,7 @@ from datetime import date
 
 class ISubscriptionRepository(ABC):
     @abstractmethod
-    def add(self, account_id: int, package_id: int, start_date: date, 
+    def add(self, account_id: int, package_id: int, start_date: Optional[date],
             end_date: date, remaining_credits: int, status: str) -> Subscription:
         pass
 

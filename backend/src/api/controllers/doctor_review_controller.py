@@ -271,29 +271,34 @@ def get_reviews_by_status(status):
 
 
 @doctor_review_bp.route('/pending', methods=['GET'])
+@require_roles(['Doctor', 'Admin'])
 def get_pending_reviews():
     """
-    Get pending reviews (analyses without review)
+    Get analyses completed by AI but not yet reviewed by a doctor (analyses without review).
     ---
     tags:
       - Doctor Review
+    security:
+      - Bearer: []
     responses:
       200:
-        description: List of analyses pending review
+        description: List of analyses pending doctor review
     """
     try:
-        pending = review_service.get_pending_reviews()
-        
+        completed = analysis_service.get_completed_analyses()
+        pending = [
+            a for a in completed
+            if review_service.get_review_by_analysis(a.analysis_id) is None
+        ]
         return success_response({
             'count': len(pending),
             'pending_analyses': [{
                 'analysis_id': a.analysis_id,
                 'image_id': a.image_id,
                 'status': a.status,
-                'completed_at': a.completed_at.isoformat() if a.completed_at else None
+                'completed_at': a.analysis_time.isoformat() if a.analysis_time else None
             } for a in pending]
         })
-        
     except Exception as e:
         return error_response(f'Internal server error: {str(e)}', 500)
 

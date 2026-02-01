@@ -8,7 +8,7 @@ class SubscriptionModel(Base):
     subscription_id = Column(BigInteger, primary_key=True, autoincrement=True)
     account_id = Column(BigInteger, ForeignKey('accounts.account_id'), nullable=False)
     package_id = Column(Integer, ForeignKey('service_packages.package_id'), nullable=False)
-    start_date = Column(Date, nullable=False)
+    start_date = Column(Date, nullable=True)  # NULL = hệ thống dùng thời điểm hiện tại
     end_date = Column(Date, nullable=False)
     remaining_credits = Column(Integer, nullable=False)
     status = Column(String(20), nullable=False)
