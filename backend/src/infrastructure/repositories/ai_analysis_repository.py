@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import datetime, date
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from infrastructure.databases.mssql import session
+from infrastructure.databases.mssql import session, SessionLocal
 from infrastructure.models.ai.ai_analysis_model import AiAnalysisModel
 from domain.models.ai_analysis import AiAnalysis
 from domain.models.iai_analysis_repository import IAiAnalysisRepository
@@ -162,30 +162,29 @@ class AiAnalysisRepository(IAiAnalysisRepository):
     def get_by_patient_id(self, patient_id: int, limit: int = 50, offset: int = 0,
                           start_date: Optional[date] = None, end_date: Optional[date] = None) -> List[AiAnalysis]:
         """
-        Get analyses for a patient with pagination and date filtering (optimized with JOIN)
+        Get analyses for a patient with pagination and date filtering (optimized with JOIN).
+        Dùng session mới để tránh session toàn cục đã bị close bởi request trước → trả về rỗng.
         """
+        from infrastructure.models.imaging.retinal_image_model import RetinalImageModel
+        from datetime import datetime as dt
+
+        new_session = SessionLocal()
         try:
-            from infrastructure.models.imaging.retinal_image_model import RetinalImageModel
-            from datetime import datetime as dt
-            
-            # JOIN with retinal_images to filter by patient_id
-            query = self.session.query(AiAnalysisModel).join(
+            query = new_session.query(AiAnalysisModel).join(
                 RetinalImageModel, AiAnalysisModel.image_id == RetinalImageModel.image_id
             ).filter(RetinalImageModel.patient_id == patient_id)
-            
-            # Apply date filters
+
             if start_date:
                 query = query.filter(AiAnalysisModel.analysis_time >= dt.combine(start_date, dt.min.time()))
             if end_date:
                 query = query.filter(AiAnalysisModel.analysis_time <= dt.combine(end_date, dt.max.time()))
-            
-            # Order by date (newest first) and apply pagination
+
             query = query.order_by(AiAnalysisModel.analysis_time.desc())
             query = query.offset(offset).limit(limit)
-            
+
             analysis_models = query.all()
             return [self._to_domain(model) for model in analysis_models]
         except Exception as e:
             raise ValueError(f'Error getting analyses by patient: {str(e)}')
         finally:
-            self.session.close()
+            new_session.close()

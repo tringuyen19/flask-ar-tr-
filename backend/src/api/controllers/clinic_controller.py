@@ -198,19 +198,22 @@ def search_clinics():
 
 
 @clinic_bp.route('', methods=['GET'])
+@require_role('Admin')
 def get_all_clinics():
     """
-    Get all clinics
+    Get all clinics (Admin only). Use GET /api/clinics/verified for public verified list.
     ---
     tags:
       - Clinic
+    security:
+      - Bearer: []
     parameters:
       - name: status
         in: query
         required: false
         schema:
           type: string
-          enum: [pending, verified, rejected]
+          enum: [pending, verified, rejected, suspended]
     responses:
       200:
         description: List of clinics

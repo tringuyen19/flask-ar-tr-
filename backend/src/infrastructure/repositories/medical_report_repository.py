@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional  # noqa: E402
 from datetime import datetime, date
 from sqlalchemy.orm import Session
 from infrastructure.databases.mssql import session
@@ -14,14 +14,17 @@ class MedicalReportRepository(IMedicalReportRepository):
     def _to_domain(self, model: MedicalReportModel) -> MedicalReport:
         return MedicalReport(
             report_id=model.report_id, patient_id=model.patient_id, analysis_id=model.analysis_id,
-            doctor_id=model.doctor_id, report_url=model.report_url, created_at=model.created_at
+            doctor_id=model.doctor_id, report_url=model.report_url, created_at=model.created_at,
+            notes=getattr(model, 'notes', None), clinical_summary=getattr(model, 'clinical_summary', None)
         )
     
-    def add(self, patient_id: int, analysis_id: int, doctor_id: int, report_url: str, created_at: datetime) -> MedicalReport:
+    def add(self, patient_id: int, analysis_id: int, doctor_id: int, report_url: str, created_at: datetime,
+            notes: Optional[str] = None, clinical_summary: Optional[str] = None) -> MedicalReport:
         try:
             report_model = MedicalReportModel(
                 patient_id=patient_id, analysis_id=analysis_id, doctor_id=doctor_id,
-                report_url=report_url, created_at=created_at
+                report_url=report_url, created_at=created_at,
+                notes=notes, clinical_summary=clinical_summary
             )
             self.session.add(report_model)
             self.session.commit()
@@ -113,6 +116,26 @@ class MedicalReportRepository(IMedicalReportRepository):
         except Exception as e:
             self.session.rollback()
             raise ValueError(f'Error updating report URL: {str(e)}')
+        finally:
+            self.session.close()
+
+    def update_report_content(self, report_id: int, report_url: str,
+                              notes: Optional[str] = None, clinical_summary: Optional[str] = None) -> Optional[MedicalReport]:
+        try:
+            report_model = self.session.query(MedicalReportModel).filter_by(report_id=report_id).first()
+            if not report_model:
+                return None
+            report_model.report_url = report_url
+            if notes is not None:
+                report_model.notes = notes
+            if clinical_summary is not None:
+                report_model.clinical_summary = clinical_summary
+            self.session.commit()
+            self.session.refresh(report_model)
+            return self._to_domain(report_model)
+        except Exception as e:
+            self.session.rollback()
+            raise ValueError(f'Error updating report content: {str(e)}')
         finally:
             self.session.close()
     

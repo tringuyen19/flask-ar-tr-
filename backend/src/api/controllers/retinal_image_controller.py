@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles, require_role
+from api.middleware.auth_middleware import require_roles, require_role, get_current_user_role_name
+from flask_jwt_extended import get_jwt_identity
 from infrastructure.repositories.retinal_image_repository import RetinalImageRepository
 from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
 from infrastructure.repositories.clinic_repository import ClinicRepository
@@ -22,6 +23,20 @@ clinic_repo = ClinicRepository(session)
 image_service = RetinalImageService(image_repo)
 patient_service = PatientProfileService(patient_repo)
 clinic_service = ClinicService(clinic_repo)
+
+
+def _current_patient_id_or_none():
+    """When current user is Patient, return their patient_id; else None."""
+    if get_current_user_role_name() != 'Patient':
+        return None
+    try:
+        account_id_str = get_jwt_identity()
+        if not account_id_str:
+            return None
+        patient = patient_service.get_patient_by_account(int(account_id_str))
+        return patient.patient_id if patient else None
+    except Exception:
+        return None
 
 
 @retinal_image_bp.route('/health', methods=['GET'])
@@ -420,7 +435,7 @@ def get_image(image_id):
 
 
 @retinal_image_bp.route('/patient/<int:patient_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_images_by_patient(patient_id):
     """
     Get all images for a patient
@@ -446,9 +461,10 @@ def get_images_by_patient(patient_id):
         description: List of images
     """
     try:
+        current_patient_id = _current_patient_id_or_none()
+        if current_patient_id is not None and patient_id != current_patient_id:
+            return error_response('You can only access your own images.', 403)
         eye_side = request.args.get('eye_side')
-        
-        # Get all images for patient
         images = image_service.get_images_by_patient(patient_id)
         
         # Filter by eye_side if provided

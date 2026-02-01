@@ -251,12 +251,15 @@ def get_latest_active():
 
 
 @ai_model_version_bp.route('', methods=['GET'])
+@require_role('Admin')
 def get_all_models():
     """
-    Get all AI model versions
+    Get all AI model versions (Admin only).
     ---
     tags:
       - AI Model Version
+    security:
+      - Bearer: []
     responses:
       200:
         description: List of all model versions
@@ -270,7 +273,9 @@ def get_all_models():
                 'ai_model_version_id': m.ai_model_version_id,
                 'model_name': m.model_name,
                 'version': m.version,
-                'active_flag': m.active_flag
+                'active_flag': m.active_flag,
+                'threshold_config': getattr(m, 'threshold_config', None),
+                'trained_at': m.trained_at.isoformat() if getattr(m, 'trained_at', None) else None
             } for m in models]
         })
         

@@ -19,7 +19,9 @@
     if (!el) return;
     var role = window.AuraAuth && window.AuraAuth.getRole ? window.AuraAuth.getRole() : '';
     var base = ROLE_BASE[role];
-    el.href = base ? base + '/profile.html' : 'login.html';
+    var pathname = (window.location.pathname || '').replace(/^\//, '');
+    var inRoleFolder = /^(patient|doctor|clinic|admin)\//.test(pathname) || pathname.indexOf('patient/') !== -1 || pathname.indexOf('doctor/') !== -1 || pathname.indexOf('clinic/') !== -1 || pathname.indexOf('admin/') !== -1;
+    el.href = inRoleFolder ? 'profile.html' : (base ? base + '/profile.html' : 'login.html');
     el.style.display = base ? '' : 'none';
   }
 
@@ -28,7 +30,9 @@
     if (!el) return;
     var role = window.AuraAuth && window.AuraAuth.getRole ? window.AuraAuth.getRole() : '';
     var base = ROLE_BASE[role];
-    el.href = base ? base + '/settings.html' : '#';
+    var pathname = (window.location.pathname || '').replace(/^\//, '');
+    var inRoleFolder = /^(patient|doctor|clinic|admin)\//.test(pathname) || pathname.indexOf('patient/') !== -1 || pathname.indexOf('doctor/') !== -1 || pathname.indexOf('clinic/') !== -1 || pathname.indexOf('admin/') !== -1;
+    el.href = inRoleFolder ? 'settings.html' : (base ? base + '/settings.html' : '#');
     el.style.display = base ? '' : 'none';
   }
 

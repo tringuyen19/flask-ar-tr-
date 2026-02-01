@@ -71,9 +71,14 @@
                 <small class="form-text text-muted">Chọn kết quả phân tích AI liên quan đến báo cáo.</small>
               </div>
               <div class="mb-3">
-                <label class="form-label">Đường dẫn báo cáo (URL) <span class="text-danger">*</span></label>
-                <input type="url" class="form-control" id="reportUrl" name="report_url" placeholder="https://..." required>
-                <small class="form-text text-muted">URL tới file báo cáo (PDF hoặc tài liệu) đã lưu trên hệ thống hoặc bên ngoài.</small>
+                <label class="form-label">Chỉ số / Tóm tắt lâm sàng</label>
+                <textarea class="form-control" id="clinicalSummary" name="clinical_summary" rows="3" placeholder="Nhập chỉ số về bệnh, tóm tắt lâm sàng..."></textarea>
+                <small class="form-text text-muted">Thông tin chỉ số, kết quả lâm sàng sẽ được ghi vào báo cáo PDF.</small>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Ghi chú bác sĩ</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Ghi chú, khuyến nghị..."></textarea>
+                <small class="form-text text-muted">Ghi chú sẽ được in vào báo cáo. Xác nhận để hệ thống tự tạo file PDF và lưu.</small>
               </div>
               <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary" id="btnSubmit">Tạo báo cáo</button>

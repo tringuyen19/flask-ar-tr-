@@ -16,7 +16,8 @@
   var reportForm = document.getElementById('reportForm');
   var patientIdSelect = document.getElementById('patientId');
   var analysisIdSelect = document.getElementById('analysisId');
-  var reportUrlInput = document.getElementById('reportUrl');
+  var clinicalSummaryInput = document.getElementById('clinicalSummary');
+  var notesInput = document.getElementById('notes');
   var btnSubmit = document.getElementById('btnSubmit');
 
   function showError(msg) {
@@ -51,7 +52,9 @@
   }
 
   function loadPatients() {
-    return window.AuraAPI.searchPatients({})
+    var params = {};
+    if (user && user.clinic_id) params.clinic_id = user.clinic_id;
+    return window.AuraAPI.searchPatients(params)
       .then(function (data) {
         var list = (data && data.patients) || [];
         patientIdSelect.innerHTML = '<option value="">-- Chọn bệnh nhân --</option>';
@@ -98,9 +101,10 @@
     showSuccess('');
     var patientId = patientIdSelect.value ? parseInt(patientIdSelect.value, 10) : null;
     var analysisId = analysisIdSelect.value ? parseInt(analysisIdSelect.value, 10) : null;
-    var reportUrl = reportUrlInput.value ? reportUrlInput.value.trim() : '';
-    if (!patientId || !analysisId || !reportUrl) {
-      showError('Vui lòng chọn bệnh nhân, phân tích và nhập đường dẫn báo cáo.');
+    var clinicalSummary = clinicalSummaryInput && clinicalSummaryInput.value ? clinicalSummaryInput.value.trim() : '';
+    var notes = notesInput && notesInput.value ? notesInput.value.trim() : '';
+    if (!patientId || !analysisId) {
+      showError('Vui lòng chọn bệnh nhân và phân tích.');
       return;
     }
     if (!doctorId) {
@@ -112,7 +116,8 @@
       patient_id: patientId,
       analysis_id: analysisId,
       doctor_id: doctorId,
-      report_url: reportUrl
+      notes: notes,
+      clinical_summary: clinicalSummary
     })
       .then(function () {
         showSuccess('Tạo báo cáo thành công.');

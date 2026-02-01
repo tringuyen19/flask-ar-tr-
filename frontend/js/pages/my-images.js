@@ -18,6 +18,8 @@
   var searchInput = document.getElementById('searchInput');
   var tableError = document.getElementById('tableError');
   var container = document.getElementById('imagesTableContainer');
+  /** Map image_id -> image_url (data URL rất dài, không đặt vào href) */
+  var imageUrlById = {};
 
   function showError(msg) {
     if (!tableError) return;
@@ -57,15 +59,17 @@
   function render() {
     if (!container || !window.AuraTable) return;
     var filtered = filterData();
+    imageUrlById = {};
+    filtered.forEach(function (row) { imageUrlById[row.image_id] = row.image_url; });
     var columns = [
       { key: 'image_id', label: 'ID' },
       { key: 'image_type', label: 'Loại ảnh' },
       { key: 'eye_side', label: 'Bên mắt' },
       { key: 'status', label: 'Trạng thái' },
-      { key: 'created_at', label: 'Ngày tải', render: function (v) { return v ? v.slice(0, 10) : '-'; } },
-      { key: 'image_url', label: 'Xem', render: function (v, row) {
-        if (!v) return '-';
-        return '<a href="' + (v.indexOf('data:') === 0 ? v : v) + '" target="_blank" class="btn btn-sm btn-outline-primary">Xem</a>';
+      { key: 'upload_time', label: 'Ngày tải', render: function (v) { return v ? String(v).slice(0, 10) : '-'; } },
+      { key: 'image_id', label: 'Xem', render: function (v, row) {
+        if (!row.image_url) return '-';
+        return '<button type="button" class="btn btn-sm btn-outline-primary btn-view-image" data-image-id="' + (row.image_id || '') + '">Xem</button>';
       } }
     ];
     window.AuraTable.render('imagesTableContainer', {
@@ -74,6 +78,24 @@
       pageSize: pageSize,
       currentPage: currentPage,
       onPageChange: function (p) { currentPage = p; render(); }
+    });
+    // Click "Xem" → hiển thị ảnh trong modal (data URL dài không dùng href để tránh about:blank)
+    container.querySelectorAll('.btn-view-image').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-image-id');
+        var url = imageUrlById[id];
+        var modal = document.getElementById('imageViewModal');
+        var modalImg = document.getElementById('imageViewModalImg');
+        if (url && modal && modalImg) {
+          modalImg.src = url;
+          if (window.bootstrap && window.bootstrap.Modal) {
+            new window.bootstrap.Modal(modal).show();
+          } else {
+            modal.classList.add('show');
+            modal.style.display = 'block';
+          }
+        }
+      });
     });
   }
 

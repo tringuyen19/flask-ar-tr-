@@ -28,6 +28,8 @@
     });
   }
 
+  var API_BASE = (window.AURA_CONFIG && window.AURA_CONFIG.API_BASE_URL) || 'http://localhost:9999';
+
   getPatient()
     .then(function () { return window.AuraAPI.getReportsByPatient(patientId, 50); })
     .then(function (data) {
@@ -40,7 +42,8 @@
       }
       reportsList.innerHTML = '<div class="list-group">' + reports.map(function (r) {
         var date = r.created_at ? r.created_at.slice(0, 10) : '-';
-        var url = r.report_url ? '<a href="' + r.report_url + '" target="_blank" class="btn btn-sm btn-outline-primary">Xem / Tải PDF</a>' : '<span class="text-muted small">Chưa có file</span>';
+        var pdfHref = r.report_url ? (r.report_url.indexOf('http') === 0 ? r.report_url : API_BASE + r.report_url) : '';
+        var url = pdfHref ? '<a href="' + pdfHref + '" target="_blank" class="btn btn-sm btn-outline-primary">Xem / Tải PDF</a>' : '<span class="text-muted small">Chưa có file</span>';
         return '<div class="list-group-item d-flex justify-content-between align-items-center">' +
           '<div><strong>Báo cáo #' + (r.report_id || r.id) + '</strong> – Phân tích #' + (r.analysis_id || '-') + ' – ' + date + '</div>' +
           '<div>' + url + '</div></div>';

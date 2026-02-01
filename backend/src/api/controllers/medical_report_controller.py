@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, send_from_directory
+from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles
+from api.middleware.auth_middleware import require_roles, get_current_user_role_name
 from infrastructure.repositories.medical_report_repository import MedicalReportRepository
 from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
 from infrastructure.repositories.doctor_profile_repository import DoctorProfileRepository
@@ -18,6 +19,7 @@ from services.export_service import ExportService
 from api.responses import success_response, error_response, not_found_response, validation_error_response
 from api.schemas import MedicalReportCreateRequestSchema, MedicalReportUpdateRequestSchema, MedicalReportResponseSchema
 from datetime import datetime
+from infrastructure.pdf.report_pdf_generator import UPLOADS_DIR
 
 medical_report_bp = Blueprint('medical_report', __name__, url_prefix='/api/medical-reports')
 
@@ -39,6 +41,21 @@ image_service = RetinalImageService(image_repo)
 export_service = ExportService()
 
 
+def _current_patient_id_or_none():
+    """When current user is Patient, return their patient_id; else None."""
+    if get_current_user_role_name() != 'Patient':
+        return None
+    try:
+        account_id_str = get_jwt_identity()
+        if not account_id_str:
+            return None
+        account_id = int(account_id_str)
+        patient = patient_service.get_patient_by_account(account_id)
+        return patient.patient_id if patient else None
+    except Exception:
+        return None
+
+
 @medical_report_bp.route('/health', methods=['GET'])
 def health_check():
     """
@@ -51,6 +68,18 @@ def health_check():
         description: Service is healthy
     """
     return success_response({"status": "healthy"}, "Medical report service is running")
+
+
+@medical_report_bp.route('/files/<path:filename>', methods=['GET'])
+def serve_report_file(filename):
+    """Phục vụ file PDF báo cáo để bệnh nhân/bác sĩ xem hoặc tải."""
+    import os
+    if '..' in filename or os.path.sep in filename:
+        return error_response('Invalid filename', 400)
+    try:
+        return send_from_directory(UPLOADS_DIR, filename, mimetype='application/pdf', as_attachment=False)
+    except Exception:
+        return not_found_response('File not found')
 
 
 @medical_report_bp.route('', methods=['POST'])
@@ -129,12 +158,29 @@ def create_report():
         if not analysis:
             return not_found_response('Analysis not found')
         
-        # STEP 3: Call SERVICE (not Repository directly!) ✅
+        # Lấy kết quả AI cho phân tích (để ghi vào PDF)
+        ai_result_dict = None
+        try:
+            results = result_service.get_results_by_analysis(data['analysis_id'])
+            if results:
+                r = results[0]
+                ai_result_dict = {
+                    'disease_type': getattr(r, 'disease_type', None),
+                    'risk_level': getattr(r, 'risk_level', None),
+                    'confidence_score': str(getattr(r, 'confidence_score', '')),
+                }
+        except Exception:
+            pass
+        
+        # STEP 3: Tạo báo cáo (nếu không gửi report_url thì backend tự tạo PDF từ notes, clinical_summary, ai_result)
         report = report_service.generate_report(
             patient_id=data['patient_id'],
             analysis_id=data['analysis_id'],
             doctor_id=data['doctor_id'],
-            report_url=data['report_url']
+            report_url=data.get('report_url'),
+            notes=data.get('notes') or '',
+            clinical_summary=data.get('clinical_summary') or '',
+            ai_result=ai_result_dict,
         )
         
         # STEP 4: Format and return response
@@ -146,11 +192,19 @@ def create_report():
     except ValueError as e:
         return error_response(str(e), 400)
     except Exception as e:
-        return error_response(f'Internal server error: {str(e)}', 500)
+        err_msg = str(e)
+        if "Unknown error" in err_msg or (hasattr(e, 'args') and e.args and len(e.args) >= 2 and isinstance(e.args[1], bytes) and b'Unknown error' in e.args[1]):
+            err_msg = (
+                "Lỗi khi tạo báo cáo. Thử: (1) Chạy script thêm cột: add_medical_report_notes_columns.sql; "
+                "(2) Kiểm tra kết nối DB."
+            )
+        else:
+            err_msg = f'Internal server error: {err_msg}'
+        return error_response(err_msg, 500)
 
 
 @medical_report_bp.route('/<int:report_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_report(report_id):
     """
     Get medical report by ID
@@ -172,20 +226,20 @@ def get_report(report_id):
         description: Report not found
     """
     try:
-        # Call SERVICE instead of Repository ✅
         report = report_service.get_report_by_id(report_id)
         if not report:
             return not_found_response('Report not found')
-        
+        current_patient_id = _current_patient_id_or_none()
+        if current_patient_id is not None and report.patient_id != current_patient_id:
+            return error_response('You can only access your own reports.', 403)
         schema = MedicalReportResponseSchema()
         return success_response(schema.dump(report))
-        
     except Exception as e:
         return error_response(f'Internal server error: {str(e)}', 500)
 
 
 @medical_report_bp.route('/analysis/<int:analysis_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_report_by_analysis(analysis_id):
     """
     Get report for a specific analysis
@@ -207,14 +261,14 @@ def get_report_by_analysis(analysis_id):
         description: Report not found
     """
     try:
-        # Call SERVICE ✅
         report = report_service.get_report_by_analysis(analysis_id)
         if not report:
             return not_found_response('Report not found for this analysis')
-        
+        current_patient_id = _current_patient_id_or_none()
+        if current_patient_id is not None and report.patient_id != current_patient_id:
+            return error_response('You can only access your own reports.', 403)
         schema = MedicalReportResponseSchema()
         return success_response(schema.dump(report))
-        
     except Exception as e:
         return error_response(f'Internal server error: {str(e)}', 500)
 
@@ -246,9 +300,10 @@ def get_reports_by_patient(patient_id):
         description: List of reports
     """
     try:
+        current_patient_id = _current_patient_id_or_none()
+        if current_patient_id is not None and patient_id != current_patient_id:
+            return error_response('You can only access your own reports.', 403)
         limit = request.args.get('limit', 10, type=int)
-        
-        # Call SERVICE ✅
         if limit:
             reports = report_service.get_recent_reports_by_patient(patient_id, limit)
         else:
@@ -530,7 +585,7 @@ def get_stats():
 
 
 @medical_report_bp.route('/<int:report_id>/export', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def export_report(report_id):
     """
     Export medical report as PDF or CSV
@@ -566,11 +621,12 @@ def export_report(report_id):
         if export_format not in ['pdf', 'csv']:
             return error_response('Invalid format. Use "pdf" or "csv"', 400)
         
-        # Get report
         report = report_service.get_report_by_id(report_id)
         if not report:
             return not_found_response('Report not found')
-        
+        current_patient_id = _current_patient_id_or_none()
+        if current_patient_id is not None and report.patient_id != current_patient_id:
+            return error_response('You can only access your own reports.', 403)
         # Get related data
         patient = patient_service.get_patient_by_id(report.patient_id)
         if not patient:

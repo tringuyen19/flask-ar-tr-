@@ -71,12 +71,12 @@
   function loadAiConfig() {
     window.AuraAPI.getAdminAiConfig()
       .then(function (data) {
-        var threshold = data.threshold_config;
+        var threshold = (data.active_model && data.active_model.threshold_config) || data.threshold_config || '';
         if (typeof threshold === 'object') threshold = JSON.stringify(threshold, null, 2);
-        setEl('aiThresholdConfig', threshold || '');
-        var policy = data.retraining_policy;
+        setEl('aiThresholdConfig', threshold);
+        var policy = data.retraining_policies || data.retraining_policy || {};
         if (typeof policy === 'object') policy = JSON.stringify(policy, null, 2);
-        setEl('aiRetrainingPolicy', policy || '');
+        setEl('aiRetrainingPolicy', policy);
       })
       .catch(function (err) {
         showError(err.message || 'Tải cấu hình AI thất bại.');

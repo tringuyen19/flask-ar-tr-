@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles
+from api.middleware.auth_middleware import require_roles, get_current_user_role_name
+from flask_jwt_extended import get_jwt_identity
 from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
 from infrastructure.repositories.account_repository import AccountRepository
 from infrastructure.databases.mssql import session
@@ -199,7 +200,7 @@ def get_patient_by_account(account_id):
 
 
 @patient_bp.route('/search', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
+@require_roles(['Doctor', 'Admin', 'ClinicManager'])
 def search_patients():
     """
     Search and filter patients (FR-18)
@@ -384,11 +385,17 @@ def update_patient(patient_id):
         description: Patient not found
     """
     try:
-        # Validate request data with schema
+        if get_current_user_role_name() == 'Patient':
+            current_account_id = get_jwt_identity()
+            if current_account_id:
+                try:
+                    current_patient = patient_service.get_patient_by_account(int(current_account_id))
+                    if current_patient and current_patient.patient_id != patient_id:
+                        return error_response('You can only update your own profile.', 403)
+                except (ValueError, TypeError):
+                    pass
         schema = PatientProfileUpdateRequestSchema()
         data = schema.load(request.get_json())
-        
-        # Call SERVICE ✅
         patient = patient_service.update_patient(patient_id, **data)
         if not patient:
             return not_found_response('Patient not found')

@@ -1,27 +1,59 @@
 """
 Medical Report Service - Business Logic Layer
-Handles medical report generation and management
+Handles medical report generation and management.
+Bác sĩ nhập ghi chú, chỉ số lâm sàng -> xác nhận -> tự tạo PDF và lưu DB.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 from domain.models.medical_report import MedicalReport
 from domain.models.imedical_report_repository import IMedicalReportRepository
+from infrastructure.pdf.report_pdf_generator import generate_medical_report_pdf, get_report_url_from_filepath
 
 
 class MedicalReportService:
     def __init__(self, repository: IMedicalReportRepository):
         self.repository = repository
-    
-    def generate_report(self, patient_id: int, analysis_id: int, 
-                       doctor_id: int, report_url: str) -> Optional[MedicalReport]:
-        """Generate medical report"""
+
+    def generate_report(
+        self,
+        patient_id: int,
+        analysis_id: int,
+        doctor_id: int,
+        report_url: Optional[str] = None,
+        notes: str = '',
+        clinical_summary: str = '',
+        ai_result: Optional[Dict[str, Any]] = None,
+    ) -> Optional[MedicalReport]:
+        """
+        Tạo/cập nhật báo cáo y tế.
+        - Nếu report_url không gửi: tự tạo PDF từ notes, clinical_summary, ai_result và lưu file, lưu URL vào DB.
+        - Nếu đã có báo cáo cho analysis_id: cập nhật nội dung và PDF (tránh UNIQUE constraint).
+        """
+        if not report_url:
+            filepath = generate_medical_report_pdf(
+                patient_id=patient_id,
+                analysis_id=analysis_id,
+                doctor_id=doctor_id,
+                notes=notes or '',
+                clinical_summary=clinical_summary or '',
+                ai_result=ai_result,
+            )
+            report_url = get_report_url_from_filepath(filepath)
+
+        existing = self.repository.get_by_analysis_id(analysis_id)
+        if existing:
+            return self.repository.update_report_content(
+                existing.report_id, report_url, notes=notes or None, clinical_summary=clinical_summary or None
+            )
         return self.repository.add(
             patient_id=patient_id,
             analysis_id=analysis_id,
             doctor_id=doctor_id,
             report_url=report_url,
-            created_at=datetime.now()
+            created_at=datetime.now(),
+            notes=notes or None,
+            clinical_summary=clinical_summary or None,
         )
     
     def get_report_by_id(self, report_id: int) -> Optional[MedicalReport]:

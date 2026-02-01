@@ -1,11 +1,14 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles, require_role
+from api.middleware.auth_middleware import require_roles, require_role, get_current_user_role_name
+from flask_jwt_extended import get_jwt_identity
 from infrastructure.repositories.ai_analysis_repository import AiAnalysisRepository
 from infrastructure.repositories.retinal_image_repository import RetinalImageRepository
+from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
 from infrastructure.databases.mssql import session
 from services.ai_analysis_service import AiAnalysisService
 from services.retinal_image_service import RetinalImageService
+from services.patient_profile_service import PatientProfileService
 from api.responses import success_response, error_response, not_found_response, validation_error_response
 from api.schemas import AiAnalysisCreateRequestSchema, AiAnalysisUpdateRequestSchema, AiAnalysisResponseSchema
 from domain.exceptions import NotFoundException, ValidationException
@@ -15,10 +18,26 @@ ai_analysis_bp = Blueprint('ai_analysis', __name__, url_prefix='/api/ai-analysis
 # Initialize repositories (only for service initialization)
 analysis_repo = AiAnalysisRepository(session)
 image_repo = RetinalImageRepository(session)
+patient_repo = PatientProfileRepository(session)
 
 # Initialize SERVICES (Business Logic Layer) ✅
 analysis_service = AiAnalysisService(analysis_repo)
 image_service = RetinalImageService(image_repo)
+patient_service = PatientProfileService(patient_repo)
+
+
+def _current_patient_id_or_none():
+    """When current user is Patient, return their patient_id; else None."""
+    if get_current_user_role_name() != 'Patient':
+        return None
+    try:
+        account_id_str = get_jwt_identity()
+        if not account_id_str:
+            return None
+        patient = patient_service.get_patient_by_account(int(account_id_str))
+        return patient.patient_id if patient else None
+    except Exception:
+        return None
 
 
 @ai_analysis_bp.route('/health', methods=['GET'])
@@ -158,7 +177,7 @@ def get_analysis(analysis_id):
 
 
 @ai_analysis_bp.route('/patient/<int:patient_id>', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_patient_analyses(patient_id):
     """
     Get analysis history for a patient with pagination (FR-17)
@@ -548,7 +567,11 @@ def mark_as_completed(analysis_id):
         analysis = analysis_service.mark_as_completed(analysis_id, processing_time)
         if not analysis:
             return not_found_response('Analysis not found')
-        
+        # Đồng bộ retinal_images.status = 'analyzed' để trang "Ảnh của tôi" / logic theo status nhất quán
+        try:
+            image_service.mark_as_analyzed(analysis.image_id)
+        except Exception:
+            pass
         return success_response({
             'analysis_id': analysis.analysis_id,
             'status': analysis.status,
@@ -734,7 +757,7 @@ def get_failed_analyses():
 
 
 @ai_analysis_bp.route('/patient/<int:patient_id>/trend', methods=['GET'])
-@require_roles(['Patient', 'Doctor', 'Admin'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_patient_trend(patient_id):
     """
     Get trend data for a patient over time (FR-17)
@@ -813,13 +836,12 @@ def get_patient_trend(patient_id):
                   example: stable
     """
     try:
+        current_patient_id = _current_patient_id_or_none()
+        if current_patient_id is not None and patient_id != current_patient_id:
+            return error_response('You can only access your own trend data.', 403)
         days = request.args.get('days', type=int, default=90)
-        
-        # Call SERVICE ✅
         trend_data = analysis_service.get_patient_trend_data(patient_id, days)
-        
         return success_response(trend_data, 'Trend data retrieved successfully')
-        
     except Exception as e:
         return error_response(f'Internal server error: {str(e)}', 500)
 

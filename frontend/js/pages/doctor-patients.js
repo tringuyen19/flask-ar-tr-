@@ -41,6 +41,10 @@
     var params = {};
     if (name) params.name = name;
     if (riskLevel) params.risk_level = riskLevel;
+    if (window.AuraAuth && window.AuraAuth.getUser) {
+      var u = window.AuraAuth.getUser();
+      if (u && u.clinic_id) params.clinic_id = u.clinic_id;
+    }
 
     window.AuraAPI.searchPatients(params)
       .then(function (data) {
@@ -88,7 +92,7 @@
   function openPatientDetail(patientId) {
     if (!patientId) return;
     patientDetailBody.innerHTML = 'Đang tải...';
-    linkCreateReport.setAttribute('href', 'create-report.html?patient_id=' + patientId);
+    if (linkCreateReport) linkCreateReport.setAttribute('href', 'create-report.html?patient_id=' + patientId);
     var modal = bootstrap.Modal.getOrCreateInstance(patientDetailModal);
     modal.show();
     window.AuraAPI.getPatient(patientId)

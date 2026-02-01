@@ -95,16 +95,20 @@ class RetinalImageValidator:
     
     @staticmethod
     def validate_image_url(image_url: str) -> None:
-        """Validate image URL"""
+        """Validate image URL (http/https URL or data URL base64)"""
         if not image_url:
             raise ValidationException("Image URL is required")
-        
-        if len(image_url) > 500:
-            raise ValidationException("Image URL must be less than 500 characters")
-        
-        # Basic URL format check
-        if not (image_url.startswith('http://') or image_url.startswith('https://')):
-            raise ValidationException("Image URL must start with http:// or https://")
+        # Data URL (base64) from frontend upload - allow up to ~10MB
+        if image_url.startswith('data:'):
+            if len(image_url) > 10_000_000:
+                raise ValidationException("Image data URL must be less than 10MB")
+            return
+        # HTTP/HTTPS URL - limit 500 chars
+        if image_url.startswith('http://') or image_url.startswith('https://'):
+            if len(image_url) > 500:
+                raise ValidationException("Image URL must be less than 500 characters")
+            return
+        raise ValidationException("Image URL must be http://, https:// or data: (base64)")
 
 
 class SubscriptionValidator:

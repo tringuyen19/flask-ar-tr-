@@ -31,7 +31,8 @@
     var items = [];
     if (images && images.length) {
       images.slice(0, 5).forEach(function (img) {
-        items.push({ text: 'Ảnh #' + (img.image_id || img.id) + ' - ' + (img.image_type || '') + ' (' + (img.created_at || '') + ')', url: 'my-images.html' });
+        var when = (img.upload_time || img.created_at || '').toString().slice(0, 10);
+        items.push({ text: 'Ảnh #' + (img.image_id || img.id) + ' - ' + (img.image_type || '') + ' (' + when + ')', url: 'my-images.html' });
       });
     }
     if (reports && reports.reports && reports.reports.length) {
