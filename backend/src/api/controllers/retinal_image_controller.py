@@ -4,10 +4,17 @@ from api.middleware.auth_middleware import require_roles, require_role
 from infrastructure.repositories.retinal_image_repository import RetinalImageRepository
 from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
 from infrastructure.repositories.clinic_repository import ClinicRepository
+from infrastructure.repositories.clinic_patient_allocation_repository import ClinicPatientAllocationRepository
+from infrastructure.repositories.subscription_repository import SubscriptionRepository
+from infrastructure.repositories.account_repository import AccountRepository
 from infrastructure.databases.mssql import session
 from services.retinal_image_service import RetinalImageService
 from services.patient_profile_service import PatientProfileService
 from services.clinic_service import ClinicService
+from services.clinic_patient_allocation_service import ClinicPatientAllocationService
+from services.subscription_service import SubscriptionService
+from services.account_service import AccountService
+from domain.exceptions import BusinessRuleException
 from api.responses import success_response, error_response, not_found_response, validation_error_response
 from api.schemas import RetinalImageCreateRequestSchema, RetinalImageUpdateRequestSchema, RetinalImageResponseSchema, RetinalImageBulkCreateRequestSchema
 
@@ -17,9 +24,15 @@ retinal_image_bp = Blueprint('retinal_image', __name__, url_prefix='/api/retinal
 image_repo = RetinalImageRepository(session)
 patient_repo = PatientProfileRepository(session)
 clinic_repo = ClinicRepository(session)
+allocation_repo = ClinicPatientAllocationRepository(session)
+subscription_repo = SubscriptionRepository(session)
+account_repo = AccountRepository(session)
 
 # Initialize SERVICES (Business Logic Layer) ✅
-image_service = RetinalImageService(image_repo)
+subscription_service = SubscriptionService(subscription_repo)
+account_service = AccountService(account_repo)
+allocation_service = ClinicPatientAllocationService(allocation_repo, subscription_service, account_service)
+image_service = RetinalImageService(image_repo, allocation_service=allocation_service)
 patient_service = PatientProfileService(patient_repo)
 clinic_service = ClinicService(clinic_repo)
 
@@ -120,6 +133,12 @@ def upload_image():
         clinic = clinic_service.get_clinic_by_id(data['clinic_id'])
         if not clinic:
             return not_found_response('Clinic not found')
+        
+        # Trừ 1 lượt upload từ pool clinic + allocation của patient (logic: clinic mua gói, cấp cho patient; upload = trừ cả hai)
+        try:
+            allocation_service.consume_upload_credit(patient.account_id, data['clinic_id'])
+        except BusinessRuleException as e:
+            return error_response(str(e), 400)
         
         # Upload image
         image = image_service.upload_image(
@@ -314,10 +333,11 @@ def upload_bulk_images():
                     })
                     is_valid = False
             
-            # Only add valid images to images_data
+            # Only add valid images to images_data (include patient_account_id for credit consumption)
             if is_valid:
                 images_data.append({
                     'patient_id': img['patient_id'],
+                    'patient_account_id': patient.account_id,
                     'clinic_id': img['clinic_id'],
                     'uploaded_by': img['uploaded_by'],
                     'image_type': img['image_type'],

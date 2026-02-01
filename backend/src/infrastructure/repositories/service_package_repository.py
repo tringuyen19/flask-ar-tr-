@@ -14,13 +14,16 @@ class ServicePackageRepository(IServicePackageRepository):
     def _to_domain(self, model: ServicePackageModel) -> ServicePackage:
         return ServicePackage(
             package_id=model.package_id, name=model.name, price=model.price,
-            image_limit=model.image_limit, duration_days=model.duration_days
+            image_limit=model.image_limit, duration_days=model.duration_days,
+            package_type=getattr(model, 'package_type', 'patient') or 'patient'
         )
     
-    def add(self, name: str, price: Decimal, image_limit: int, duration_days: int) -> ServicePackage:
+    def add(self, name: str, price: Decimal, image_limit: int, duration_days: int,
+            package_type: str = 'patient') -> ServicePackage:
         try:
             pkg_model = ServicePackageModel(
-                name=name, price=price, image_limit=image_limit, duration_days=duration_days
+                name=name, price=price, image_limit=image_limit, duration_days=duration_days,
+                package_type=package_type
             )
             self.session.add(pkg_model)
             self.session.commit()
@@ -56,6 +59,17 @@ class ServicePackageRepository(IServicePackageRepository):
             return [self._to_domain(model) for model in pkg_models]
         except Exception as e:
             raise ValueError(f'Error getting all packages: {str(e)}')
+        finally:
+            self.session.close()
+    
+    def get_all_by_type(self, package_type: str) -> List[ServicePackage]:
+        try:
+            pkg_models = self.session.query(ServicePackageModel).filter_by(
+                package_type=package_type
+            ).all()
+            return [self._to_domain(model) for model in pkg_models]
+        except Exception as e:
+            raise ValueError(f'Error getting packages by type: {str(e)}')
         finally:
             self.session.close()
     

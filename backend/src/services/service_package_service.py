@@ -13,26 +13,24 @@ class ServicePackageService:
     def __init__(self, repository: IServicePackageRepository):
         self.repository = repository
     
-    def create_package(self, name: str, price: Decimal, 
-                      image_limit: int, duration_days: int) -> Optional[ServicePackage]:
-        """Create service package"""
-        # Validate price
+    def create_package(self, name: str, price: Decimal,
+                       image_limit: int, duration_days: int,
+                       package_type: str = 'patient') -> Optional[ServicePackage]:
+        """Create service package. package_type: 'clinic' | 'patient'."""
         if price < 0:
             raise ValueError("Price must be positive")
-        
-        # Validate image limit
         if image_limit < 0:
             raise ValueError("Image limit must be positive")
-        
-        # Validate duration
         if duration_days < 1:
             raise ValueError("Duration must be at least 1 day")
-        
+        if package_type not in ('clinic', 'patient'):
+            raise ValueError("package_type must be 'clinic' or 'patient'")
         return self.repository.add(
             name=name,
             price=price,
             image_limit=image_limit,
-            duration_days=duration_days
+            duration_days=duration_days,
+            package_type=package_type
         )
     
     def get_package_by_id(self, package_id: int) -> Optional[ServicePackage]:
@@ -43,8 +41,10 @@ class ServicePackageService:
         """Get package by name"""
         return self.repository.get_by_name(name)
     
-    def list_all_packages(self) -> List[ServicePackage]:
-        """Get all packages"""
+    def list_all_packages(self, package_type: Optional[str] = None) -> List[ServicePackage]:
+        """Get all packages, optionally filter by package_type ('clinic' | 'patient')."""
+        if package_type:
+            return self.repository.get_all_by_type(package_type)
         return self.repository.get_all()
     
     def get_active_packages(self) -> List[ServicePackage]:

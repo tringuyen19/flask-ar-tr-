@@ -177,3 +177,7 @@ class AccountService:
         """Get all accounts in a clinic"""
         return self.repository.get_by_clinic(clinic_id)
 
+    def get_clinic_manager_account(self, clinic_id: int) -> Optional[Account]:
+        """Get ClinicManager account for a clinic (role_id 4). Used for clinic subscription/credits."""
+        return self.repository.get_by_clinic_and_role(clinic_id, role_id=4)
+

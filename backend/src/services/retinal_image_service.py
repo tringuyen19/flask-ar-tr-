@@ -7,13 +7,14 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from domain.models.retinal_image import RetinalImage
 from domain.models.iretinal_image_repository import IRetinalImageRepository
-from domain.exceptions import NotFoundException, ValidationException
+from domain.exceptions import NotFoundException, ValidationException, BusinessRuleException
 from domain.validators import RetinalImageValidator
 
 
 class RetinalImageService:
-    def __init__(self, repository: IRetinalImageRepository):
+    def __init__(self, repository: IRetinalImageRepository, allocation_service=None):
         self.repository = repository
+        self.allocation_service = allocation_service  # optional: for deducting clinic/patient credits on upload
     
     def upload_image(self, patient_id: int, clinic_id: int, uploaded_by: int,
                     image_type: str, eye_side: str, image_url: str, 

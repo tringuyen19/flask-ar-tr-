@@ -28,6 +28,7 @@ from infrastructure.models.messaging.message_model import MessageModel
 from infrastructure.models.billing.service_package_model import ServicePackageModel
 from infrastructure.models.billing.subscription_model import SubscriptionModel
 from infrastructure.models.billing.payment_model import PaymentModel
+from infrastructure.models.billing.clinic_patient_allocation_model import ClinicPatientAllocationModel
 
 
 def init_db(app):

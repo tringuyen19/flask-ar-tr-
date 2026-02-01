@@ -5,8 +5,8 @@ from decimal import Decimal
 
 class IServicePackageRepository(ABC):
     @abstractmethod
-    def add(self, name: str, price: Decimal, image_limit: int, 
-            duration_days: int) -> ServicePackage:
+    def add(self, name: str, price: Decimal, image_limit: int,
+            duration_days: int, package_type: str = 'patient') -> ServicePackage:
         pass
 
     @abstractmethod
@@ -19,6 +19,11 @@ class IServicePackageRepository(ABC):
 
     @abstractmethod
     def get_all(self) -> List[ServicePackage]:
+        pass
+
+    @abstractmethod
+    def get_all_by_type(self, package_type: str) -> List[ServicePackage]:
+        """Get all packages by package_type ('clinic' | 'patient')."""
         pass
 
     @abstractmethod

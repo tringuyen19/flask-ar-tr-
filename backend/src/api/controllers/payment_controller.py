@@ -41,6 +41,7 @@ def health_check():
 
 
 @payment_bp.route('', methods=['POST'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def create_payment():
     """
     Create a new payment
@@ -154,6 +155,7 @@ def get_payment(payment_id):
 
 
 @payment_bp.route('/subscription/<int:subscription_id>', methods=['GET'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_payments_by_subscription(subscription_id):
     """
     Get all payments for a subscription
@@ -338,6 +340,7 @@ def get_payments_by_status(status):
 
 
 @payment_bp.route('/pending', methods=['GET'])
+@require_roles(['Admin', 'ClinicManager'])
 def get_pending_payments():
     """
     Get all pending payments
@@ -428,6 +431,7 @@ def get_failed_payments():
 
 
 @payment_bp.route('/method/<payment_method>', methods=['GET'])
+@require_roles(['Admin', 'ClinicManager'])
 def get_payments_by_method(payment_method):
     """
     Get payments by payment method
@@ -666,6 +670,7 @@ def delete_payment(payment_id):
 
 
 @payment_bp.route('/stats', methods=['GET'])
+@require_roles(['Admin', 'ClinicManager'])
 def get_stats():
     """
     Get payment statistics

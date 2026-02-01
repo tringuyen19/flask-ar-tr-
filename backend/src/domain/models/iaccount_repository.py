@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from .account import Account
 from typing import List, Optional
+
 from datetime import datetime
 
 class IAccountRepository(ABC):
@@ -60,5 +61,10 @@ class IAccountRepository(ABC):
     @abstractmethod
     def get_by_clinic(self, clinic_id: int) -> List[Account]:
         """Get all accounts in a clinic"""
+        pass
+
+    @abstractmethod
+    def get_by_clinic_and_role(self, clinic_id: int, role_id: int) -> Optional[Account]:
+        """Get one account in a clinic with given role (e.g. ClinicManager)."""
         pass
 

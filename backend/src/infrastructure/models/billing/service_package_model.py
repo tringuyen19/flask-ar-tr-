@@ -10,7 +10,8 @@ class ServicePackageModel(Base):
     price = Column(DECIMAL(12, 2), nullable=False)
     image_limit = Column(Integer, nullable=False)
     duration_days = Column(Integer, nullable=False)
+    package_type = Column(String(20), nullable=False, default='patient')  # 'clinic' | 'patient'
     
     def __repr__(self):
-        return f"<ServicePackageModel(package_id={self.package_id}, name='{self.name}', price={self.price})>"
+        return f"<ServicePackageModel(package_id={self.package_id}, name='{self.name}', package_type='{self.package_type}')>"
 

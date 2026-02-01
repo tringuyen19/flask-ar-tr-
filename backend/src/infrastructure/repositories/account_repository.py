@@ -206,3 +206,13 @@ class AccountRepository(IAccountRepository):
             raise ValueError(f'Error getting accounts by clinic: {str(e)}')
         finally:
             self.session.close()
+
+    def get_by_clinic_and_role(self, clinic_id: int, role_id: int) -> Optional[Account]:
+        """Get one account in a clinic with given role (e.g. 4 = ClinicManager)."""
+        try:
+            model = self.session.query(AccountModel).filter_by(clinic_id=clinic_id, role_id=role_id).first()
+            return self._to_domain(model) if model else None
+        except Exception as e:
+            raise ValueError(f'Error getting account by clinic and role: {str(e)}')
+        finally:
+            self.session.close()

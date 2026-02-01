@@ -9,10 +9,15 @@ from infrastructure.repositories.retinal_image_repository import RetinalImageRep
 from infrastructure.repositories.ai_result_repository import AiResultRepository
 from infrastructure.repositories.subscription_repository import SubscriptionRepository
 from infrastructure.repositories.medical_report_repository import MedicalReportRepository
+from infrastructure.repositories.clinic_patient_allocation_repository import ClinicPatientAllocationRepository
 from infrastructure.databases.mssql import session
 from services.clinic_service import ClinicService
+from services.subscription_service import SubscriptionService
+from services.account_service import AccountService
+from services.clinic_patient_allocation_service import ClinicPatientAllocationService
 from api.responses import success_response, error_response, not_found_response, validation_error_response
 from api.schemas import ClinicCreateRequestSchema, ClinicUpdateRequestSchema, ClinicResponseSchema
+from domain.exceptions import BusinessRuleException
 
 clinic_bp = Blueprint('clinic', __name__, url_prefix='/api/clinics')
 
@@ -25,6 +30,12 @@ image_repo = RetinalImageRepository(session)
 result_repo = AiResultRepository(session)
 subscription_repo = SubscriptionRepository(session)
 report_repo = MedicalReportRepository(session)
+allocation_repo = ClinicPatientAllocationRepository(session)
+
+# Services for allocation (clinic cấp lượt upload cho patient)
+subscription_service = SubscriptionService(subscription_repo)
+account_service = AccountService(account_repo)
+allocation_service = ClinicPatientAllocationService(allocation_repo, subscription_service, account_service)
 
 # Initialize SERVICE with dependency injection ✅
 clinic_service = ClinicService(
@@ -887,6 +898,42 @@ def get_clinic_members(clinic_id):
         members = clinic_service.get_clinic_members(clinic_id)
         return success_response(members)
     except ValueError as e:
+        return error_response(str(e), 400)
+    except Exception as e:
+        return error_response(f'Internal server error: {str(e)}', 500)
+
+
+@clinic_bp.route('/<int:clinic_id>/patients/<int:patient_id>/allocate-credits', methods=['POST'])
+@require_roles(['ClinicManager', 'Admin'])
+def allocate_credits_to_patient(clinic_id, patient_id):
+    """
+    Phòng khám cấp credits lượt upload cho bệnh nhân (từ pool gói clinic).
+    Body: { "credits": 100 }
+    """
+    try:
+        clinic = clinic_service.get_clinic_by_id(clinic_id)
+        if not clinic:
+            return not_found_response('Clinic not found')
+        patient = patient_repo.get_by_id(patient_id)
+        if not patient:
+            return not_found_response('Patient not found')
+        data = request.get_json() or {}
+        credits = data.get('credits')
+        if credits is None or not isinstance(credits, int) or credits <= 0:
+            return error_response('credits must be a positive integer', 400)
+        clinic_account = account_service.get_clinic_manager_account(clinic_id)
+        if not clinic_account:
+            return error_response('Clinic has no manager account', 400)
+        allocation = allocation_service.allocate(clinic_account.account_id, patient.account_id, credits)
+        return success_response({
+            'allocation_id': allocation.allocation_id,
+            'clinic_account_id': allocation.clinic_account_id,
+            'patient_account_id': allocation.patient_account_id,
+            'credits_allocated': allocation.credits_allocated,
+            'credits_used': allocation.credits_used,
+            'credits_remaining': allocation.credits_remaining
+        }, 'Credits allocated successfully', 201)
+    except BusinessRuleException as e:
         return error_response(str(e), 400)
     except Exception as e:
         return error_response(f'Internal server error: {str(e)}', 500)

@@ -55,6 +55,7 @@ def create_package():
             - price
             - image_limit
             - duration_days
+            - package_type
           properties:
             name:
               type: string
@@ -69,6 +70,10 @@ def create_package():
             duration_days:
               type: integer
               example: 30
+            package_type:
+              type: string
+              enum: [clinic, patient]
+              description: clinic = gói cho phòng khám, patient = gói cho người dùng
     responses:
       201:
         description: Package created successfully
@@ -96,7 +101,8 @@ def create_package():
             name=data['name'],
             price=float(data['price']),
             image_limit=int(data['image_limit']),
-            duration_days=int(data['duration_days'])
+            duration_days=int(data['duration_days']),
+            package_type=data['package_type']
         )
         
         response_schema = ServicePackageResponseSchema()
@@ -173,13 +179,21 @@ def get_package_by_name(name):
 
 
 @service_package_bp.route('', methods=['GET'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_all_packages():
     """
-    Get all service packages
+    Get all service packages. Query: type=clinic | type=patient to filter by audience.
     ---
     tags:
       - Service Package
     parameters:
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [clinic, patient]
+        description: clinic = gói cho phòng khám, patient = gói cho người dùng
       - name: min_price
         in: query
         required: false
@@ -195,15 +209,13 @@ def get_all_packages():
         description: List of packages
     """
     try:
+        package_type = request.args.get('type')  # 'clinic' | 'patient' | None
         min_price = request.args.get('min_price', type=float)
         max_price = request.args.get('max_price', type=float)
         
+        packages = package_service.list_all_packages(package_type=package_type)
         if min_price is not None and max_price is not None:
-            # Filter by price range (need to add to service or filter in controller)
-            all_packages = package_service.list_all_packages()
-            packages = [p for p in all_packages if min_price <= float(p.price) <= max_price]
-        else:
-            packages = package_service.list_all_packages()
+            packages = [p for p in packages if min_price <= float(p.price) <= max_price]
         
         return success_response({
             'count': len(packages),
@@ -212,7 +224,8 @@ def get_all_packages():
                 'name': p.name,
                 'price': float(p.price),
                 'image_limit': p.image_limit,
-                'duration_days': p.duration_days
+                'duration_days': p.duration_days,
+                'package_type': p.package_type
             } for p in packages]
         })
         
@@ -348,7 +361,8 @@ def update_package(package_id):
             'name': package.name,
             'price': float(package.price),
             'image_limit': package.image_limit,
-            'duration_days': package.duration_days
+            'duration_days': package.duration_days,
+            'package_type': package.package_type
         }, 'Package updated successfully')
         
     except ValueError as e:
