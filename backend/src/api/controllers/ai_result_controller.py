@@ -5,11 +5,13 @@ from infrastructure.repositories.ai_result_repository import AiResultRepository
 from infrastructure.repositories.ai_analysis_repository import AiAnalysisRepository
 from infrastructure.repositories.notification_repository import NotificationRepository
 from infrastructure.repositories.retinal_image_repository import RetinalImageRepository
+from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
 from infrastructure.databases.mssql import session
 from services.ai_result_service import AiResultService
 from services.ai_analysis_service import AiAnalysisService
 from api.responses import success_response, error_response, not_found_response, validation_error_response
 from api.schemas import AiResultCreateRequestSchema, AiResultUpdateRequestSchema, AiResultResponseSchema
+from domain.exceptions import NotFoundException
 
 ai_result_bp = Blueprint('ai_result', __name__, url_prefix='/api/ai-results')
 
@@ -18,13 +20,15 @@ result_repo = AiResultRepository(session)
 analysis_repo = AiAnalysisRepository(session)
 notification_repo = NotificationRepository(session)
 image_repo = RetinalImageRepository(session)
+patient_repo = PatientProfileRepository(session)
 
 # Initialize SERVICES with dependency injection ✅
 result_service = AiResultService(
     repository=result_repo,
     notification_repository=notification_repo,
     analysis_repository=analysis_repo,
-    image_repository=image_repo
+    image_repository=image_repo,
+    patient_repository=patient_repo
 )
 analysis_service = AiAnalysisService(analysis_repo)
 
@@ -116,6 +120,51 @@ def create_result():
         return validation_error_response(e.messages)
     except ValueError as e:
         return error_response(str(e), 400)
+    except Exception as e:
+        return error_response(f'Internal server error: {str(e)}', 500)
+
+
+@ai_result_bp.route('/<int:result_id>/recommendations', methods=['GET'])
+@require_roles(['Patient', 'Doctor', 'Admin'])
+def get_result_recommendations(result_id):
+    """
+    Get health recommendations for an AI result (FR-5)
+    ---
+    tags:
+      - AI Result
+    security:
+      - Bearer: []
+    parameters:
+      - name: result_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    responses:
+      200:
+        description: Recommendations text
+      404:
+        description: Result not found
+    """
+    try:
+        result = result_service.get_result_by_id(result_id)
+        if not result:
+            return not_found_response('Result not found')
+        from services.recommendation_service import RecommendationService
+        risk_level = (result.risk_level or 'low').lower()
+        disease_type = getattr(result, 'disease_type', None)
+        recommendation = RecommendationService.generate_recommendations(risk_level, disease_type)
+        warnings = RecommendationService.generate_warnings(
+            risk_level,
+            float(result.confidence_score) / 100.0 if result.confidence_score and float(result.confidence_score) > 1 else float(result.confidence_score or 0)
+        )
+        return success_response({
+            'result_id': result_id,
+            'recommendation': recommendation,
+            'warnings': warnings
+        })
+    except NotFoundException:
+        return not_found_response('Result not found')
     except Exception as e:
         return error_response(f'Internal server error: {str(e)}', 500)
 

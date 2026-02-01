@@ -14,6 +14,8 @@
   var statImages = document.getElementById('statImages');
   var statAnalyses = document.getElementById('statAnalyses');
   var statReports = document.getElementById('statReports');
+  var statCredits = document.getElementById('statCredits');
+  var linkPaymentHistory = document.getElementById('linkPaymentHistory');
   var recentList = document.getElementById('recentList');
   var dashboardError = document.getElementById('dashboardError');
 
@@ -62,25 +64,40 @@
           setStat(statImages, 0);
           setStat(statAnalyses, 0);
           setStat(statReports, 0);
+          setStat(statCredits, '-');
           renderRecent([], { reports: [] });
           return;
         }
         patientId = patient.patient_id;
         return Promise.all([
           window.AuraAPI.getImagesByPatient(patientId),
-          window.AuraAPI.getReportsByPatient(patientId, 10)
+          window.AuraAPI.getReportsByPatient(patientId, 10),
+          window.AuraAPI.getAccountCredits(accountId).catch(function () { return null; })
         ]);
       })
       .then(function (data) {
         if (!data) return;
         var imagesData = data[0];
         var reportsData = data[1];
+        var creditsData = data[2];
         var images = (imagesData && imagesData.images) || [];
         var reports = (reportsData && reportsData.reports) || [];
         var totalImages = (imagesData && imagesData.count) != null ? imagesData.count : images.length;
         setStat(statImages, totalImages);
         setStat(statAnalyses, totalImages);
         setStat(statReports, reports.length);
+        if (creditsData && creditsData.remaining_credits != null) {
+          setStat(statCredits, creditsData.remaining_credits);
+        } else {
+          setStat(statCredits, '-');
+        }
+        if (linkPaymentHistory) {
+          linkPaymentHistory.href = 'subscriptions.html';
+          linkPaymentHistory.addEventListener('click', function (e) {
+            e.preventDefault();
+            window.location.href = 'subscriptions.html';
+          });
+        }
         renderRecent(images, { reports: reports });
       })
       .catch(function (err) {
@@ -88,6 +105,7 @@
         setStat(statImages, '-');
         setStat(statAnalyses, '-');
         setStat(statReports, '-');
+        setStat(statCredits, '-');
         recentList.innerHTML = '<p class="text-muted mb-0">Không tải được dữ liệu.</p>';
       });
   }

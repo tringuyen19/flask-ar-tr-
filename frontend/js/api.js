@@ -217,6 +217,12 @@
     return res.data;
   }
 
+  /** AI Analysis: tạo yêu cầu phân tích (POST /api/ai-analysis) - FR-2 */
+  async function createAnalysis(payload) {
+    const res = await request('POST', '/api/ai-analysis', payload);
+    return res.data;
+  }
+
   /** AI Analysis: chi tiết phân tích (GET /api/ai-analysis/:id) */
   async function getAnalysis(analysisId) {
     const res = await request('GET', '/api/ai-analysis/' + analysisId);
@@ -338,16 +344,105 @@
     return res.data;
   }
 
+  /** Subscriptions: tạo gói đăng ký (POST /api/subscriptions) - FR-11 */
+  async function createSubscription(payload) {
+    const res = await request('POST', '/api/subscriptions', payload);
+    return res.data;
+  }
+
+  /** Subscriptions: gia hạn gói (PUT /api/subscriptions/:id/renew) - FR-11 */
+  async function renewSubscription(subscriptionId, durationDays, additionalCredits) {
+    const res = await request('PUT', '/api/subscriptions/' + subscriptionId + '/renew', {
+      duration_days: durationDays,
+      additional_credits: additionalCredits
+    });
+    return res.data;
+  }
+
   /** Subscriptions: danh sách theo account (GET /api/subscriptions/account/:id) */
   async function getSubscriptionsByAccount(accountId) {
     const res = await request('GET', '/api/subscriptions/account/' + accountId);
-    return res.data;
+    return (res && res.data !== undefined) ? res.data : res;
   }
 
   /** Subscriptions: gói đang active (GET /api/subscriptions/account/:id/active) */
   async function getActiveSubscription(accountId) {
     const res = await request('GET', '/api/subscriptions/account/' + accountId + '/active');
     return res.data;
+  }
+
+  /** Subscriptions: số lượt còn lại (GET /api/subscriptions/account/:id/credits) - FR-12 */
+  async function getAccountCredits(accountId) {
+    const res = await request('GET', '/api/subscriptions/account/' + accountId + '/credits');
+    return res.data;
+  }
+
+  /** Payments: tạo thanh toán (POST /api/payments) - FR-11 */
+  async function createPayment(payload) {
+    const res = await request('POST', '/api/payments', payload);
+    return res.data;
+  }
+
+  /** Payments: lịch sử thanh toán theo account (GET /api/payments/account/:id/history) - FR-12 */
+  async function getPaymentHistoryByAccount(accountId, limit, offset) {
+    let path = '/api/payments/account/' + accountId + '/history';
+    const q = [];
+    if (limit != null) q.push('limit=' + limit);
+    if (offset != null) q.push('offset=' + offset);
+    if (q.length) path += '?' + q.join('&');
+    const res = await request('GET', path);
+    return (res && res.data !== undefined) ? res.data : res;
+  }
+
+  /** Service packages: danh sách gói dịch vụ (GET /api/service-packages) - FR-11 */
+  async function getServicePackages() {
+    const res = await request('GET', '/api/service-packages');
+    return (res && res.data !== undefined) ? res.data : res;
+  }
+
+  /** Conversations: danh sách hội thoại theo bệnh nhân (GET /api/conversations/patient/:id) - FR-10 */
+  async function getConversationsByPatient(patientId, activeOnly) {
+    let path = '/api/conversations/patient/' + patientId;
+    if (activeOnly) path += '?active_only=true';
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** AI Results: kết quả theo analysis (GET /api/ai-results/analysis/:id) - FR-3 */
+  async function getResultsByAnalysis(analysisId) {
+    const res = await request('GET', '/api/ai-results/analysis/' + analysisId);
+    return res.data;
+  }
+
+  /** AI Annotations: chú thích theo analysis (GET /api/ai-annotations/analysis/:id) - FR-4 */
+  async function getAnnotationByAnalysis(analysisId) {
+    const res = await request('GET', '/api/ai-annotations/analysis/' + analysisId);
+    return res.data;
+  }
+
+  /** Notifications: theo account (GET /api/notifications/account/:id) - FR-9 */
+  async function getNotificationsByAccount(accountId, unreadOnly) {
+    let path = '/api/notifications/account/' + accountId;
+    if (unreadOnly) path += '?unread_only=true';
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** Medical report: tải xuống PDF/CSV (GET /api/medical-reports/:id/export) - FR-7 */
+  async function downloadReportExport(reportId, format) {
+    const fmt = (format || 'pdf').toLowerCase();
+    const url = (window.AURA_CONFIG ? window.AURA_CONFIG.API_BASE_URL : 'http://localhost:9999') + '/api/medical-reports/' + reportId + '/export?format=' + fmt;
+    const res = await fetch(url, { method: 'GET', headers: getHeaders(true) });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || data.error || 'Tải xuống thất bại.');
+    }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bao_cao_' + reportId + '.' + (fmt === 'pdf' ? 'pdf' : 'csv');
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   // ---------- Admin: Accounts (CRUD, role, status) ----------
@@ -646,6 +741,7 @@
     getReportsByDoctor,
     createMedicalReport,
     getConversationsByDoctor,
+    createAnalysis,
     getAnalysis,
     getPatientAnalyses,
     getMessagesByConversation,
@@ -662,8 +758,19 @@
     getClinicReportsSummary,
     getClinicScreeningReport,
     exportClinicStatistics,
+    createSubscription,
+    renewSubscription,
     getSubscriptionsByAccount,
     getActiveSubscription,
+    getAccountCredits,
+    createPayment,
+    getPaymentHistoryByAccount,
+    getServicePackages,
+    getConversationsByPatient,
+    getResultsByAnalysis,
+    getAnnotationByAnalysis,
+    getNotificationsByAccount,
+    downloadReportExport,
     getAllAccounts,
     createAccount,
     getAccount,

@@ -40,11 +40,34 @@
       }
       reportsList.innerHTML = '<div class="list-group">' + reports.map(function (r) {
         var date = r.created_at ? r.created_at.slice(0, 10) : '-';
-        var url = r.report_url ? '<a href="' + r.report_url + '" target="_blank" class="btn btn-sm btn-outline-primary">Xem / Tải PDF</a>' : '<span class="text-muted small">Chưa có file</span>';
-        return '<div class="list-group-item d-flex justify-content-between align-items-center">' +
-          '<div><strong>Báo cáo #' + (r.report_id || r.id) + '</strong> – Phân tích #' + (r.analysis_id || '-') + ' – ' + date + '</div>' +
-          '<div>' + url + '</div></div>';
+        var rid = r.report_id || r.id;
+        var url = r.report_url ? '<a href="' + r.report_url + '" target="_blank" class="btn btn-sm btn-outline-secondary me-1">Xem</a>' : '';
+        var btnPdf = '<button type="button" class="btn btn-sm btn-outline-danger me-1 btn-export-pdf" data-id="' + rid + '">Tải PDF</button>';
+        var btnCsv = '<button type="button" class="btn btn-sm btn-outline-success btn-export-csv" data-id="' + rid + '">Tải CSV</button>';
+        return '<div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">' +
+          '<div><strong>Báo cáo #' + rid + '</strong> – Phân tích #' + (r.analysis_id || '-') + ' – ' + date + '</div>' +
+          '<div class="d-flex align-items-center">' + url + btnPdf + btnCsv + '</div></div>';
       }).join('') + '</div>';
+      reportsList.querySelectorAll('.btn-export-pdf').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = parseInt(btn.getAttribute('data-id'), 10);
+          if (window.AuraAPI && window.AuraAPI.downloadReportExport) {
+            window.AuraAPI.downloadReportExport(id, 'pdf').catch(function (e) {
+              if (window.AuraAlert && window.AuraAlert.toast) window.AuraAlert.toast(e.message || 'Tải thất bại', 'danger');
+            });
+          }
+        });
+      });
+      reportsList.querySelectorAll('.btn-export-csv').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = parseInt(btn.getAttribute('data-id'), 10);
+          if (window.AuraAPI && window.AuraAPI.downloadReportExport) {
+            window.AuraAPI.downloadReportExport(id, 'csv').catch(function (e) {
+              if (window.AuraAlert && window.AuraAlert.toast) window.AuraAlert.toast(e.message || 'Tải thất bại', 'danger');
+            });
+          }
+        });
+      });
     })
     .catch(function (err) {
       showError(err.message || 'Không tải được danh sách báo cáo.');

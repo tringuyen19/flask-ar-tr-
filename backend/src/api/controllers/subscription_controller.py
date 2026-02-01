@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from api.middleware.auth_middleware import require_roles, require_role
+from flask_jwt_extended import get_jwt_identity
+from api.middleware.auth_middleware import require_roles, require_role, get_current_user_role_name
 from infrastructure.repositories.subscription_repository import SubscriptionRepository
 from infrastructure.repositories.account_repository import AccountRepository
 from infrastructure.repositories.service_package_repository import ServicePackageRepository
@@ -206,6 +207,15 @@ def get_subscriptions_by_account(account_id):
         description: List of subscriptions
     """
     try:
+        # Patient chỉ được xem subscription của chính mình (account_id = JWT identity)
+        role_name = get_current_user_role_name()
+        if role_name == 'Patient':
+            try:
+                current_id = int(get_jwt_identity())
+            except (TypeError, ValueError):
+                current_id = None
+            if current_id is None or current_id != account_id:
+                return error_response('Bạn chỉ được xem gói dịch vụ của chính mình.', 403)
         subscriptions = subscription_service.get_subscriptions_by_account(account_id)
         
         return success_response({

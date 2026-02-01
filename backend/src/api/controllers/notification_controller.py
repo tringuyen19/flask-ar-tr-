@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import get_jwt_identity, get_jwt
 from marshmallow import ValidationError
 from api.middleware.auth_middleware import require_roles, require_role
 from infrastructure.repositories.notification_repository import NotificationRepository
@@ -143,6 +144,7 @@ def get_notification(notification_id):
 
 
 @notification_bp.route('/account/<int:account_id>', methods=['GET'])
+@require_roles(['Patient', 'Doctor', 'Admin', 'ClinicManager'])
 def get_notifications_by_account(account_id):
     """
     Get all notifications for an account
@@ -171,6 +173,13 @@ def get_notifications_by_account(account_id):
         description: List of notifications
     """
     try:
+        # Chỉ được xem thông báo của chính mình (trừ Admin)
+        claims = get_jwt()
+        if claims.get('role_id') != 1:  # not Admin
+            account_id_str = get_jwt_identity()
+            if account_id_str and int(account_id_str) != account_id:
+                return error_response('Bạn chỉ được xem thông báo của chính mình.', 403)
+        
         unread_only = request.args.get('unread_only', 'false').lower() == 'true'
         notification_type = request.args.get('type')
         

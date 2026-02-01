@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gói dịch vụ | Bệnh nhân | AURA</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/style.css" rel="stylesheet">
+</head>
+<body class="d-flex flex-column min-vh-100 aura-fixed-header">
+  <header class="aura-header navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: #212121;">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="../index.html">AURA</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li></ul>
+        <ul class="navbar-nav ms-auto align-items-center">
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown"><i class="bi bi-person-circle me-1"></i><span id="headerUserName">Tài khoản</span></a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="profile.html">Hồ sơ</a></li>
+              <li><a class="dropdown-item" href="settings.html">Cài đặt</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="#" id="headerLogout">Đăng xuất</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+  <div class="d-flex flex-grow-1" style="padding-top: 56px;">
+    <aside class="aura-sidebar d-none d-md-flex flex-shrink-0 border-end bg-light" style="width: 250px; background-color: #f5f5f5 !important;">
+      <nav class="nav flex-column p-3 w-100">
+        <a class="nav-link rounded mb-1" href="dashboard.html"><i class="bi bi-house-door me-2"></i>Dashboard</a>
+        <a class="nav-link rounded mb-1" href="upload-image.html"><i class="bi bi-cloud-upload me-2"></i>Upload ảnh</a>
+        <a class="nav-link rounded mb-1" href="my-images.html"><i class="bi bi-images me-2"></i>Ảnh của tôi</a>
+        <a class="nav-link rounded mb-1" href="analysis-results.html"><i class="bi bi-graph-up me-2"></i>Kết quả phân tích</a>
+        <a class="nav-link rounded mb-1" href="reports.html"><i class="bi bi-file-earmark-text me-2"></i>Báo cáo</a>
+        <a class="nav-link rounded mb-1" href="messages.html"><i class="bi bi-chat-dots me-2"></i>Tin nhắn</a>
+        <a class="nav-link rounded mb-1 active" href="subscriptions.html"><i class="bi bi-credit-card me-2"></i>Gói dịch vụ</a>
+        <hr class="my-2">
+        <a class="nav-link rounded mb-1" href="profile.html"><i class="bi bi-person me-2"></i>Hồ sơ</a>
+        <a class="nav-link rounded mb-1" href="settings.html"><i class="bi bi-gear me-2"></i>Cài đặt</a>
+      </nav>
+    </aside>
+    <main class="flex-grow-1 p-4" style="background-color: #f5f5f5;">
+      <div class="container-fluid">
+        <h1 class="h3 mb-4">Mua / Gia hạn gói dịch vụ</h1>
+        <div id="pageError" class="alert alert-danger d-none"></div>
+
+        <section class="mb-5">
+          <h2 class="h5 mb-3">Gói của tôi</h2>
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div id="mySubscriptionsLoading" class="text-center py-4 text-muted">Đang tải...</div>
+              <div id="mySubscriptionsList" class="d-none"></div>
+              <div id="mySubscriptionsEmpty" class="text-muted text-center py-4 d-none">Chưa có gói nào. Chọn gói bên dưới để mua.</div>
+            </div>
+          </div>
+          <p class="mt-2 small"><a href="#" id="linkToPaymentHistory">Xem lịch sử thanh toán</a></p>
+        </section>
+
+        <section class="mb-4" id="paymentHistorySection">
+          <h2 class="h5 mb-3">Lịch sử thanh toán</h2>
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div id="paymentHistoryLoading" class="text-center py-3 text-muted small">Đang tải...</div>
+              <div id="paymentHistoryList" class="d-none"></div>
+              <div id="paymentHistoryEmpty" class="text-muted text-center py-3 small d-none">Chưa có giao dịch.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="mb-4">
+          <h2 class="h5 mb-3">Gói dịch vụ có sẵn</h2>
+          <div id="packagesLoading" class="text-center py-4 text-muted">Đang tải...</div>
+          <div id="packagesList" class="row g-3 d-none"></div>
+          <div id="packagesEmpty" class="text-muted text-center py-4 d-none">Chưa có gói dịch vụ.</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Chọn phương thức thanh toán khi mua -->
+  <div class="modal fade" id="modalPurchase" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Xác nhận mua gói</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="modalPurchasePackageName" class="mb-2"></p>
+          <p id="modalPurchaseAmount" class="mb-3 fw-bold"></p>
+          <label class="form-label">Phương thức thanh toán</label>
+          <select class="form-select" id="modalPaymentMethod">
+            <option value="e_wallet">Ví điện tử</option>
+            <option value="bank_transfer">Chuyển khoản</option>
+            <option value="credit_card">Thẻ tín dụng</option>
+            <option value="debit_card">Thẻ ghi nợ</option>
+            <option value="cash">Tiền mặt</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmPurchase">Xác nhận thanh toán</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Gia hạn gói -->
+  <div class="modal fade" id="modalRenew" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Gia hạn gói</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">Gia hạn thêm số ngày và thêm lượt phân tích.</p>
+          <input type="hidden" id="modalRenewSubscriptionId" value="">
+          <div class="mb-3">
+            <label class="form-label">Số ngày gia hạn</label>
+            <input type="number" class="form-control" id="modalRenewDays" value="30" min="1">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Thêm lượt phân tích</label>
+            <input type="number" class="form-control" id="modalRenewCredits" value="50" min="1">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmRenew">Gia hạn</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="aura-footer py-3 border-top" style="background-color: #f5f5f5;"><div class="container-fluid"><span class="text-muted small">&copy; 2025 AURA</span></div></footer>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/config.js"></script>
+  <!-- Chỉ hiển thị gói 4,5,6,7,8 từ dbo.service_packages (bỏ comment dòng dưới nếu cần) -->
+  <!-- window.AURA_SUBSCRIPTION_PACKAGE_IDS = [4, 5, 6, 7, 8]; -->
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/components/header.js"></script>
+  <script src="../js/components/sidebar.js"></script>
+  <script src="../js/components/alert.js"></script>
+  <script src="../js/pages/patient-subscriptions.js"></script>
+</body>
+</html>

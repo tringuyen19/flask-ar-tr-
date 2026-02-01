@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import get_jwt_identity, get_jwt
 from marshmallow import ValidationError
 from api.middleware.auth_middleware import require_roles
 from infrastructure.repositories.conversation_repository import ConversationRepository
@@ -184,6 +185,18 @@ def get_conversations_by_patient(patient_id):
         description: List of conversations
     """
     try:
+        # FR-10: Patient chỉ xem hội thoại của chính mình
+        claims = get_jwt()
+        if claims.get('role_id') == 3:  # Patient
+            account_id_str = get_jwt_identity()
+            if account_id_str:
+                try:
+                    current_patient = patient_service.get_patient_by_account(int(account_id_str))
+                    if not current_patient or current_patient.patient_id != patient_id:
+                        return error_response('Bạn chỉ được xem hội thoại của chính mình.', 403)
+                except (ValueError, TypeError):
+                    return error_response('Invalid token.', 403)
+        
         active_only = request.args.get('active_only', 'false').lower() == 'true'
         
         # Call SERVICE ✅

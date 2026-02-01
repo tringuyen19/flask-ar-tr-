@@ -106,9 +106,24 @@
         image_url: selectedFileDataUrl
       };
       window.AuraAPI.uploadImage(payload)
-        .then(function () {
+        .then(function (data) {
           setProgress(100);
           if (window.AuraAlert && window.AuraAlert.toast) window.AuraAlert.toast('Upload ảnh thành công.', 'success');
+          var imageId = data && (data.image_id || data.id);
+          if (imageId && window.AuraAPI.getActiveAiModels && window.AuraAPI.createAnalysis) {
+            window.AuraAPI.getActiveAiModels().then(function (models) {
+              var list = (models && models.models) || (Array.isArray(models) ? models : []);
+              var m = list && list[0];
+              var modelId = m && (m.ai_model_version_id || m.id);
+              if (modelId) {
+                window.AuraAPI.createAnalysis({ image_id: imageId, ai_model_version_id: modelId })
+                  .then(function () {
+                    if (window.AuraAlert && window.AuraAlert.toast) window.AuraAlert.toast('Đã gửi yêu cầu phân tích AI.', 'success');
+                  })
+                  .catch(function () {});
+              }
+            }).catch(function () {});
+          }
           selectedFileDataUrl = null;
           if (previewWrap) previewWrap.classList.add('d-none');
           if (fileInput) fileInput.value = '';

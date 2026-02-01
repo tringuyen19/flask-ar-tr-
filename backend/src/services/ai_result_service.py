@@ -17,11 +17,13 @@ class AiResultService:
     def __init__(self, repository: IAiResultRepository,
                  notification_repository: Optional[INotificationRepository] = None,
                  analysis_repository: Optional[IAiAnalysisRepository] = None,
-                 image_repository: Optional[IRetinalImageRepository] = None):
+                 image_repository: Optional[IRetinalImageRepository] = None,
+                 patient_repository=None):
         self.repository = repository
         self.notification_repository = notification_repository
         self.analysis_repository = analysis_repository
         self.image_repository = image_repository
+        self.patient_repository = patient_repository
     
     def create_result(self, analysis_id: int, disease_type: str, 
                      risk_level: str, confidence_score: Decimal) -> AiResult:
@@ -59,11 +61,36 @@ class AiResultService:
         if not result:
             raise ValueError("Failed to create AI result")
         
+        # FR-9: Thông báo cho bệnh nhân khi kết quả AI sẵn sàng
+        self._send_result_ready_to_patient(result)
+        
         # Auto-alert for high-risk results (FR-29)
         if risk_level.lower() in ['high', 'critical'] and self.notification_repository:
             self._send_high_risk_alert(result)
         
         return result
+    
+    def _send_result_ready_to_patient(self, result: AiResult):
+        """Gửi thông báo cho bệnh nhân khi kết quả AI sẵn sàng (FR-9)."""
+        try:
+            if not self.notification_repository or not self.analysis_repository or not self.image_repository or not self.patient_repository:
+                return
+            analysis = self.analysis_repository.get_by_id(result.analysis_id)
+            if not analysis:
+                return
+            image = self.image_repository.get_by_id(analysis.image_id)
+            if not image or not getattr(image, 'patient_id', None):
+                return
+            patient = self.patient_repository.get_by_id(image.patient_id)
+            if not patient or not getattr(patient, 'account_id', None):
+                return
+            from services.notification_service import NotificationService
+            NotificationService(self.notification_repository).send_ai_result_notification(
+                account_id=patient.account_id,
+                analysis_id=result.analysis_id
+            )
+        except Exception as e:
+            print(f"Warning: Failed to send result-ready notification to patient: {str(e)}")
     
     def _send_high_risk_alert(self, result: AiResult):
         """

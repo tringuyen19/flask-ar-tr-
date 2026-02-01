@@ -1,11 +1,14 @@
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
+from flask_jwt_extended import get_jwt_identity, get_jwt
 from api.middleware.auth_middleware import require_roles, require_role
 from infrastructure.repositories.ai_analysis_repository import AiAnalysisRepository
 from infrastructure.repositories.retinal_image_repository import RetinalImageRepository
+from infrastructure.repositories.patient_profile_repository import PatientProfileRepository
 from infrastructure.databases.mssql import session
 from services.ai_analysis_service import AiAnalysisService
 from services.retinal_image_service import RetinalImageService
+from services.patient_profile_service import PatientProfileService
 from api.responses import success_response, error_response, not_found_response, validation_error_response
 from api.schemas import AiAnalysisCreateRequestSchema, AiAnalysisUpdateRequestSchema, AiAnalysisResponseSchema
 from domain.exceptions import NotFoundException, ValidationException
@@ -15,10 +18,12 @@ ai_analysis_bp = Blueprint('ai_analysis', __name__, url_prefix='/api/ai-analysis
 # Initialize repositories (only for service initialization)
 analysis_repo = AiAnalysisRepository(session)
 image_repo = RetinalImageRepository(session)
+patient_repo = PatientProfileRepository(session)
 
 # Initialize SERVICES (Business Logic Layer) ✅
 analysis_service = AiAnalysisService(analysis_repo)
 image_service = RetinalImageService(image_repo)
+patient_service = PatientProfileService(patient_repo)
 
 
 @ai_analysis_bp.route('/health', methods=['GET'])
@@ -36,7 +41,7 @@ def health_check():
 
 
 @ai_analysis_bp.route('', methods=['POST'])
-@require_roles(['Doctor', 'Admin'])
+@require_roles(['Patient', 'Doctor', 'Admin'])
 def create_analysis():
     """
     Create a new AI analysis request
@@ -97,6 +102,19 @@ def create_analysis():
         image = image_service.get_image_by_id(data['image_id'])
         if not image:
             return not_found_response('Image not found')
+        
+        # FR-2: Patient chỉ được tạo phân tích cho ảnh của chính mình
+        claims = get_jwt()
+        if claims.get('role_id') == 3:  # Patient
+            account_id_str = get_jwt_identity()
+            if account_id_str:
+                try:
+                    account_id = int(account_id_str)
+                    patient = patient_service.get_patient_by_account(account_id)
+                    if not patient or getattr(image, 'patient_id', None) != patient.patient_id:
+                        return error_response('Bạn chỉ được yêu cầu phân tích ảnh của chính mình.', 403)
+                except (ValueError, TypeError):
+                    return error_response('Invalid token.', 403)
         
         # Create analysis
         analysis = analysis_service.create_analysis(

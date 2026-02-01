@@ -178,7 +178,7 @@ def get_versions_by_name(model_name):
 
 
 @ai_model_version_bp.route('/active', methods=['GET'])
-@require_roles(['Doctor', 'Admin'])
+@require_roles(['Patient', 'Doctor', 'Admin'])
 def get_active_models():
     """
     Get all active AI model versions
