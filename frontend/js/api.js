@@ -54,6 +54,29 @@
     return data;
   }
 
+  /** Upload file (multipart/form-data) to /api/uploads */
+  async function uploadFile(file, category) {
+    if (!file) throw new Error('Thiếu file upload.');
+    const form = new FormData();
+    form.append('file', file);
+    if (category) form.append('category', category);
+
+    const headers = {};
+    const key = (window.AURA_CONFIG && window.AURA_CONFIG.STORAGE_KEYS && window.AURA_CONFIG.STORAGE_KEYS.TOKEN) || 'aura_access_token';
+    const token = localStorage.getItem(key);
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    let res;
+    try {
+      res = await fetch(API_BASE + '/api/uploads', { method: 'POST', headers, body: form });
+    } catch (e) {
+      throw new Error('Không thể kết nối máy chủ. Kiểm tra backend đã chạy tại ' + API_BASE + ' chưa.');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(parseErrorMessage(res, data));
+    return data.data; // { url, full_url, ... }
+  }
+
   /** Login - POST /api/auth/login (không gửi token) */
   async function login(credentials) {
     return request('POST', '/api/auth/login', credentials, false);
@@ -138,6 +161,12 @@
     return res.data;
   }
 
+  /** Doctor: danh sách bệnh nhân của bác sĩ - patient upload ảnh -> AI phân tích -> bác sĩ review (GET /api/doctors/:id/patients) */
+  async function getDoctorPatients(doctorId) {
+    const res = await request('GET', '/api/doctors/' + doctorId + '/patients');
+    return res.data;
+  }
+
   /** Doctor: tạo hồ sơ bác sĩ (POST /api/doctors) */
   async function createDoctor(payload) {
     const res = await request('POST', '/api/doctors', payload);
@@ -151,8 +180,10 @@
   }
 
   /** Doctor: tìm kiếm bệnh nhân (GET /api/patients/search?name=&clinic_id=&risk_level=) */
+  /** FR-18: Tìm kiếm/lọc bệnh nhân theo mã (patient_id), tên (name), mức rủi ro (risk_level) */
   async function searchPatients(params) {
     const q = new URLSearchParams();
+    if (params && params.patient_id != null && params.patient_id !== '') q.set('patient_id', params.patient_id);
     if (params && params.name) q.set('name', params.name);
     if (params && params.clinic_id != null) q.set('clinic_id', params.clinic_id);
     if (params && params.risk_level) q.set('risk_level', params.risk_level);
@@ -209,11 +240,31 @@
     return res.data;
   }
 
-  /** Doctor: danh sách hội thoại (GET /api/conversations/doctor/:id) */
+  /** Doctor: danh sách hội thoại (GET /api/conversations/doctor/:id). Trả full response { message, data: { doctor_id, count, conversations } } */
   async function getConversationsByDoctor(doctorId, activeOnly) {
     let path = '/api/conversations/doctor/' + doctorId;
     if (activeOnly) path += '?active_only=true';
     const res = await request('GET', path);
+    return res && res.data != null ? res : { data: res };
+  }
+
+  /** Patient: danh sách hội thoại (GET /api/conversations/patient/:id) - FR-10 */
+  async function getConversationsByPatient(patientId, activeOnly) {
+    let path = '/api/conversations/patient/' + patientId;
+    if (activeOnly) path += '?active_only=true';
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** Patient: bác sĩ đã review kết quả của patient (GET /api/doctor-reviews/patient/:id/doctors) - FR-10 */
+  async function getDoctorsWhoReviewedPatient(patientId) {
+    const res = await request('GET', '/api/doctor-reviews/patient/' + patientId + '/doctors');
+    return res.data;
+  }
+
+  /** Tạo hoặc lấy hội thoại patient-doctor (POST /api/conversations) - FR-10 */
+  async function createConversation(patientId, doctorId) {
+    const res = await request('POST', '/api/conversations', { patient_id: patientId, doctor_id: doctorId });
     return res.data;
   }
 
@@ -231,6 +282,50 @@
     if (offset != null) q.push('offset=' + offset);
     if (q.length) path += '?' + q.join('&');
     const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** AI Analysis: trend theo bệnh nhân (GET /api/ai-analysis/patient/:id/trend?days=) - FR-17 */
+  async function getPatientTrend(patientId, days) {
+    let path = '/api/ai-analysis/patient/' + patientId + '/trend';
+    if (days != null) path += '?days=' + days;
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** AI Results: danh sách tất cả (GET /api/ai-results) - entity [dbo].[ai_results] - Doctor/Admin */
+  async function getAllResults() {
+    const res = await request('GET', '/api/ai-results');
+    return res.data;
+  }
+
+  /** AI Results: kết quả theo analysis (GET /api/ai-results/analysis/:id) - disease_type, risk_level, confidence_score */
+  async function getResultsByAnalysis(analysisId) {
+    const res = await request('GET', '/api/ai-results/analysis/' + analysisId);
+    return res.data;
+  }
+
+  /** AI Annotations: danh sách tất cả (GET /api/ai-annotations) - entity [dbo].[ai_annotations] - Doctor/Admin */
+  async function getAllAnnotations() {
+    const res = await request('GET', '/api/ai-annotations');
+    return res.data;
+  }
+
+  /** AI Annotations: chú thích theo analysis (GET /api/ai-annotations/analysis/:id) - FR-14 Doctor xem chú thích */
+  async function getAnnotationByAnalysis(analysisId) {
+    const res = await request('GET', '/api/ai-annotations/analysis/' + analysisId);
+    return res.data;
+  }
+
+  /** AI Analysis: danh sách phân tích đã hoàn thành (GET /api/ai-analysis/completed) - Doctor/Admin */
+  async function getCompletedAnalyses() {
+    const res = await request('GET', '/api/ai-analysis/completed');
+    return res.data;
+  }
+
+  /** Retinal image: chi tiết ảnh theo id (GET /api/retinal-images/:id) - patient_id, image_url */
+  async function getRetinalImage(imageId) {
+    const res = await request('GET', '/api/retinal-images/' + imageId);
     return res.data;
   }
 
@@ -347,6 +442,43 @@
   /** Subscriptions: gói đang active (GET /api/subscriptions/account/:id/active) */
   async function getActiveSubscription(accountId) {
     const res = await request('GET', '/api/subscriptions/account/' + accountId + '/active');
+    return res.data;
+  }
+
+  /** Subscriptions: số lượt còn lại (GET /api/subscriptions/account/:id/credits) - FR-12 */
+  async function getAccountCredits(accountId) {
+    const res = await request('GET', '/api/subscriptions/account/' + accountId + '/credits');
+    return res.data;
+  }
+
+  /** Subscriptions: mua gói demo PTT chuyển khoản (POST /api/subscriptions/purchase-demo) - FR-11 */
+  async function purchasePackageDemo(accountId, packageId) {
+    const res = await request('POST', '/api/subscriptions/purchase-demo', { account_id: accountId, package_id: packageId });
+    return res.data;
+  }
+
+  /** Service packages: danh sách gói cho patient (ids 1-5) - FR-11 */
+  async function getServicePackagesForPatient() {
+    const res = await request('GET', '/api/service-packages?ids=1,2,3,4,5');
+    return res.data;
+  }
+
+  /** Payments: lịch sử thanh toán theo account (GET /api/payments/account/:id/history) - FR-12 */
+  async function getPaymentHistory(accountId, limit, offset) {
+    let path = '/api/payments/account/' + accountId + '/history';
+    const q = [];
+    if (limit != null) q.push('limit=' + limit);
+    if (offset != null) q.push('offset=' + offset);
+    if (q.length) path += '?' + q.join('&');
+    const res = await request('GET', path);
+    return res.data;
+  }
+
+  /** Notifications: danh sách thông báo theo account (GET /api/notifications/account/:id) - FR-9 */
+  async function getNotificationsByAccount(accountId, unreadOnly) {
+    let path = '/api/notifications/account/' + accountId;
+    if (unreadOnly) path += '/unread';
+    const res = await request('GET', path);
     return res.data;
   }
 
@@ -624,6 +756,7 @@
     register,
     forgotPassword,
     resetPassword,
+    uploadFile,
     getPatientByAccount,
     getImagesByPatient,
     getImageStatsByPatient,
@@ -634,6 +767,7 @@
     getPatient,
     getDoctorByAccount,
     getDoctorPerformance,
+    getDoctorPatients,
     createDoctor,
     updateDoctor,
     searchPatients,
@@ -646,8 +780,18 @@
     getReportsByDoctor,
     createMedicalReport,
     getConversationsByDoctor,
+    getConversationsByPatient,
+    getDoctorsWhoReviewedPatient,
+    createConversation,
     getAnalysis,
     getPatientAnalyses,
+    getPatientTrend,
+    getAllResults,
+    getAllAnnotations,
+    getResultsByAnalysis,
+    getAnnotationByAnalysis,
+    getCompletedAnalyses,
+    getRetinalImage,
     getMessagesByConversation,
     sendMessage,
     getClinic,
@@ -664,6 +808,11 @@
     exportClinicStatistics,
     getSubscriptionsByAccount,
     getActiveSubscription,
+    getAccountCredits,
+    purchasePackageDemo,
+    getServicePackagesForPatient,
+    getPaymentHistory,
+    getNotificationsByAccount,
     getAllAccounts,
     createAccount,
     getAccount,

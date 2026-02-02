@@ -38,53 +38,47 @@ class ConversationRepository(IConversationRepository):
             return self._to_domain(conv_model) if conv_model else None
         except Exception as e:
             raise ValueError(f'Error getting conversation: {str(e)}')
-        finally:
-            self.session.close()
-    
+        # Không close session ở read: session global bị đóng sau lần đầu -> request sau trả rỗng
+
     def get_by_patient(self, patient_id: int) -> List[Conversation]:
         try:
             conv_models = self.session.query(ConversationModel).filter_by(patient_id=patient_id).all()
             return [self._to_domain(model) for model in conv_models]
         except Exception as e:
             raise ValueError(f'Error getting conversations by patient: {str(e)}')
-        finally:
-            self.session.close()
-    
+        # Không close session ở read (session dùng chung)
+
     def get_by_doctor(self, doctor_id: int) -> List[Conversation]:
         try:
             conv_models = self.session.query(ConversationModel).filter_by(doctor_id=doctor_id).all()
             return [self._to_domain(model) for model in conv_models]
         except Exception as e:
             raise ValueError(f'Error getting conversations by doctor: {str(e)}')
-        finally:
-            self.session.close()
-    
+        # Không close session ở read: tránh session đóng -> API trả [] mặc dù DB có dữ liệu
+
     def get_active_by_patient(self, patient_id: int) -> List[Conversation]:
         try:
             conv_models = self.session.query(ConversationModel).filter_by(patient_id=patient_id, status='active').all()
             return [self._to_domain(model) for model in conv_models]
         except Exception as e:
             raise ValueError(f'Error getting active conversations by patient: {str(e)}')
-        finally:
-            self.session.close()
-    
+        # Không close session ở read
+
     def get_active_by_doctor(self, doctor_id: int) -> List[Conversation]:
         try:
             conv_models = self.session.query(ConversationModel).filter_by(doctor_id=doctor_id, status='active').all()
             return [self._to_domain(model) for model in conv_models]
         except Exception as e:
             raise ValueError(f'Error getting active conversations by doctor: {str(e)}')
-        finally:
-            self.session.close()
-    
+        # Không close session ở read
+
     def get_all(self) -> List[Conversation]:
         try:
             conv_models = self.session.query(ConversationModel).all()
             return [self._to_domain(model) for model in conv_models]
         except Exception as e:
             raise ValueError(f'Error getting all conversations: {str(e)}')
-        finally:
-            self.session.close()
+        # Không close session ở read
     
     def get_or_create_conversation(self, patient_id: int, doctor_id: int) -> Conversation:
         try:
