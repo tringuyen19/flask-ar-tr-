@@ -140,7 +140,7 @@
       return db - da;
     });
     var html = '<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">' +
-      '<thead class="table-light"><tr><th>Review #</th><th>Phân tích #</th><th>Trạng thái</th><th>Thời gian</th></tr></thead><tbody>';
+      '<thead class="table-light"><tr><th>Review</th><th>Phân tích</th><th>Trạng thái</th><th>Thời gian</th></tr></thead><tbody>';
     reviews.slice(0, 8).forEach(function (r) {
       html += '<tr>' +
         '<td>' + (r.review_id || '-') + '</td>' +
@@ -166,7 +166,7 @@
       return db - da;
     });
     var html = '<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">' +
-      '<thead class="table-light"><tr><th>Báo cáo #</th><th>Bệnh nhân #</th><th>Ngày tạo</th></tr></thead><tbody>';
+      '<thead class="table-light"><tr><th>Báo cáo</th><th>Bệnh nhân</th><th>Ngày tạo</th></tr></thead><tbody>';
     reports.slice(0, 8).forEach(function (r) {
       html += '<tr>' +
         '<td>' + (r.report_id || r.id || '-') + '</td>' +
@@ -213,7 +213,8 @@
 
         setText(perfScore, (perf && perf.performance_score != null) ? perf.performance_score : '-');
         setText(statPatients, (perf && perf.unique_patients != null) ? perf.unique_patients : '-');
-        setText(statReviews, (perf && perf.total_reviews != null) ? perf.total_reviews : '-');
+        // Chỉ tính "Đã duyệt" khi validation_status = approved
+        setText(statReviews, (perf && perf.approved_reviews != null) ? perf.approved_reviews : '-');
         setText(statApprovalRate, (perf && perf.approval_rate != null) ? pct(perf.approval_rate) : '-');
         setText(statReports, (perf && perf.total_reports != null) ? perf.total_reports : ((reportsData && reportsData.count != null) ? reportsData.count : ((reportsData && reportsData.reports) ? reportsData.reports.length : '-')));
 

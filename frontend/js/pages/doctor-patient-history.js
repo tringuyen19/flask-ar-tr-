@@ -110,37 +110,35 @@
 
   function renderTrendChart(trend) {
     if (!trendChartWrap) return;
-    var dates = (trend && trend.analysis_dates) || [];
-    var confs = (trend && trend.confidence_scores) || [];
-    if (!dates.length || !confs.length) {
-      trendChartWrap.innerHTML = '<div class="text-muted small">Chưa đủ dữ liệu để vẽ xu hướng.</div>';
+    // Xu hướng theo Mức rủi ro: dùng trend_dates + trend_risk_numeric (1=Thấp..4=Rất cao)
+    var trendDates = (trend && trend.trend_dates) || [];
+    var trendNumeric = (trend && trend.trend_risk_numeric) || [];
+    var trendLabels = (trend && trend.trend_risk_levels) || [];
+    if (!trendDates.length || !trendNumeric.length) {
+      trendChartWrap.innerHTML = '<div class="text-muted small">Chưa đủ dữ liệu để vẽ xu hướng theo mức rủi ro.</div>';
       return;
     }
-    // Normalize confidence to 0..100
-    var points = confs.map(function (c) {
-      var n = parseFloat(c);
-      if (isNaN(n)) return null;
-      return n <= 1 ? n * 100 : n;
-    }).filter(function (n) { return n != null; });
+    var points = trendNumeric; // 1..4
     if (points.length < 2) {
       trendChartWrap.innerHTML = '<div class="text-muted small">Chưa đủ dữ liệu để vẽ xu hướng.</div>';
       return;
     }
     var w = 520, h = 120, pad = 8;
-    var min = Math.min.apply(null, points);
-    var max = Math.max.apply(null, points);
-    var span = (max - min) || 1;
+    var minR = 1, maxR = 4;
+    var span = maxR - minR;
     var stepX = (w - pad * 2) / (points.length - 1);
     var poly = points.map(function (v, i) {
       var x = pad + stepX * i;
-      var y = pad + (h - pad * 2) * (1 - (v - min) / span);
+      var y = pad + (h - pad * 2) * (1 - (v - minR) / span);
       return x.toFixed(1) + ',' + y.toFixed(1);
     }).join(' ');
 
+    var minLabel = riskLabel((trendLabels[points.indexOf(Math.min.apply(null, points))] || 'low').toLowerCase());
+    var maxLabel = riskLabel((trendLabels[points.indexOf(Math.max.apply(null, points))] || 'critical').toLowerCase());
     trendChartWrap.innerHTML =
       '<div class="d-flex justify-content-between align-items-center mb-1">' +
-      '<div class="text-muted small">Độ tin cậy theo thời gian</div>' +
-      '<div class="text-muted small">min ' + min.toFixed(1) + '% • max ' + max.toFixed(1) + '%</div>' +
+      '<div class="text-muted small">Mức rủi ro theo thời gian</div>' +
+      '<div class="text-muted small">min ' + minLabel + ' • max ' + maxLabel + '</div>' +
       '</div>' +
       '<svg width="100%" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="bg-white rounded border">' +
       '<polyline fill="none" stroke="#1976D2" stroke-width="2" points="' + poly + '"></polyline>' +
@@ -152,8 +150,8 @@
     var map = { improving: 'Cải thiện', worsening: 'Xấu đi', stable: 'Ổn định', no_data: 'Chưa có dữ liệu' };
     if (trendLabelEl) trendLabelEl.textContent = map[t] || (t || '-');
     if (trendHintEl) {
-      var avg = trend && trend.average_confidence != null ? (trend.average_confidence + '%') : '-';
-      trendHintEl.textContent = 'Tổng ' + (trend && trend.total_analyses != null ? trend.total_analyses : '-') + ' lần • TB độ tin cậy ' + avg;
+      var total = (trend && trend.total_analyses != null) ? trend.total_analyses : '-';
+      trendHintEl.textContent = 'Tổng ' + total + ' lần (xu hướng tính theo mức rủi ro)';
     }
   }
 
@@ -170,7 +168,8 @@
 
   function loadTrend() {
     var days = trendDays ? parseInt(trendDays.value, 10) : 90;
-    return window.AuraAPI.getPatientTrend(patientId, days).then(function (trend) {
+    return window.AuraAPI.getPatientTrend(patientId, days).then(function (res) {
+      var trend = (res && res.data !== undefined) ? res.data : res;
       renderTrendMeta(trend);
       renderTrendChart(trend);
       renderRiskDistribution(trend && trend.risk_distribution);

@@ -114,12 +114,11 @@
           return;
         }
         paymentHistoryList.innerHTML = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">' +
-          '<thead><tr><th>Thời gian</th><th>Gói / Subscription</th><th>Số tiền</th><th>PTTT</th><th>Trạng thái</th></tr></thead><tbody>' +
+          '<thead><tr><th>Thời gian</th><th>Số tiền</th><th>PTTT</th><th>Trạng thái</th></tr></thead><tbody>' +
           payments.map(function (p) {
             var statusClass = (p.status === 'completed') ? 'success' : (p.status === 'failed') ? 'danger' : (p.status === 'pending') ? 'warning' : 'secondary';
             return '<tr>' +
               '<td>' + formatDate(p.payment_time) + '</td>' +
-              '<td>#' + (p.subscription_id || '-') + '</td>' +
               '<td>' + formatMoney(p.amount) + '</td>' +
               '<td>' + (p.payment_method || '-') + '</td>' +
               '<td><span class="badge bg-' + statusClass + '">' + (p.status || '-') + '</span></td>' +

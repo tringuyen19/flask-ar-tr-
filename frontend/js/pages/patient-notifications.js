@@ -27,7 +27,7 @@
     var map = {
       health_recommendation: 'Khuyến nghị sức khỏe',
       high_risk_alert: 'Cảnh báo nguy cơ cao',
-      ai_result_ready: 'Kết quả phân tích'
+      ai_result_ready: 'Kết quả AI sẵn sàng'
     };
     return map[type] || type;
   }
@@ -78,6 +78,7 @@
             var content = (n.content || '').replace(/\n/g, '<br>');
             var isRead = n.is_read;
             var cardClass = isRead ? 'border' : 'border-primary border-2';
+            var actionLink = (type === 'ai_result_ready') ? '<p class="mb-0 mt-2"><a href="analysis-results.html" class="btn btn-sm btn-outline-primary">Xem kết quả phân tích</a></p>' : '';
             return '<div class="card border-0 shadow-sm mb-3 ' + cardClass + '">' +
               '<div class="card-body">' +
               '<div class="d-flex justify-content-between align-items-start mb-2">' +
@@ -85,6 +86,7 @@
               '<small class="text-muted">' + formatDate(n.created_at) + '</small>' +
               '</div>' +
               '<div class="notification-content">' + content + '</div>' +
+              actionLink +
               '</div></div>';
           }).join('');
         }

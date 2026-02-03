@@ -47,14 +47,16 @@ class NotificationService:
         Auto-trigger notification when AI result is ready (FR-9)
         
         Args:
-            account_id: Account ID
+            account_id: Account ID (patient)
             analysis_id: Analysis ID
             
         Returns:
             Notification: Created notification domain model
         """
-        content = f"AI analysis completed for analysis ID {analysis_id}. Please check your results."
-        
+        content = (
+            f"Kết quả phân tích AI đã sẵn sàng (phân tích {analysis_id}). "
+            "Vui lòng xem tai mục Kết quả phân tích."
+        )
         return self.send_notification(
             account_id=account_id,
             notification_type='ai_result_ready',
