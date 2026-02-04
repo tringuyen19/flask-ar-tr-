@@ -199,7 +199,7 @@
         setTimeout(() => {
           alert('Đăng ký phòng khám thành công!\n\nPhòng khám của bạn đang ở trạng thái "Chờ xác minh". ' +
                 'Quản trị viên sẽ xem xét và thông báo kết quả qua email.\n\n' +
-                'Bạn có thể đăng nhập bằng tài khoản quản lý đã tạo.');
+                'Bạn chỉ có thể đăng nhập sau khi phòng khám được quản trị viên duyệt.');
           window.location.href = 'login.html';
         }, 500);
 
